@@ -35,5 +35,10 @@ npm-debug.log*
 .DS_Store
 *.pem
 
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
 # Azure
 .azure/
