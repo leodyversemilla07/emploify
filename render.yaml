@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: emploify-web
+    env: static
+    buildCommand: npm run build
+    staticPublishDirectory: apps/web/.next
+    branch: main
+    
+  - type: web
+    name: emploify-api
+    env: node
+    buildCommand: npm run build && npx prisma generate
+    startCommand: npm run start
+    branch: main
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        sync: false
+      - key: BETTER_AUTH_URL
+        sync: false
+      - key: BETTER_AUTH_SECRET
+        sync: false
+      - key: AZURE_OPENAI_ENDPOINT
+        sync: false
+      - key: AZURE_OPENAI_DEPLOYMENT
+        sync: false
+      - key: AZURE_OPENAI_API_KEY
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
