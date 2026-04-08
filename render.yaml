@@ -1,6 +1,6 @@
 services:
   - type: web
-    name:emploify-web
+    name: emploify-web
     env: node
     buildCommand: cd apps/web && bun install && bun run build
     startCommand: cd apps/web && bun run start
@@ -8,7 +8,7 @@ services:
     plan: free
     
   - type: web
-    name:emploify-api
+    name: emploify-api
     env: node
     buildCommand: cd apps/api && bun install && bun run build && bunx prisma generate
     startCommand: cd apps/api && bun run start
