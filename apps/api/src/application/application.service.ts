@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common"
 import {
   ApplicationStatus,
   type ApplicationStatus as ApplicationStatusType,
-} from "../generated/prisma/client.js"
+} from "@prisma/client"
 
 // biome-ignore lint/style/useImportType: NestJS dependency injection requires a runtime class reference.
 import { PrismaService } from "../prisma/prisma.service.js"

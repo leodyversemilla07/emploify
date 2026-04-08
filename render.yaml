@@ -1,16 +1,16 @@
 services:
   - type: web
-    name:emploify-web
+    name: emploify-web
     env: node
     buildCommand: cd apps/web && bun install && bun run build
     startCommand: cd apps/web && bun run start
     branch: main
     plan: free
-    
+
   - type: web
-    name:emploify-api
+    name: emploify-api
     env: node
-    buildCommand: cd apps/api && bun install && bun run build && bunx prisma generate
+    buildCommand: cd apps/api && bun install && bun run prisma:generate && bun run build
     startCommand: cd apps/api && bun src/main.ts
     branch: main
     plan: free

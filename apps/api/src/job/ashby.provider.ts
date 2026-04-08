@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common"
 
-import type { ExperienceLevel } from "../generated/prisma/client.js"
+import type { ExperienceLevel } from "@prisma/client"
 import type { ExternalJob } from "./job.types.js"
 
 @Injectable()

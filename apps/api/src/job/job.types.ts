@@ -1,4 +1,4 @@
-import type { ExperienceLevel } from "../generated/prisma/client.js"
+import type { ExperienceLevel } from "@prisma/client"
 
 export type ExternalJob = {
   title: string

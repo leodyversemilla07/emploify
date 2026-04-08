@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Put, Query } from "@nestjs/common"
-import type { ApplicationStatus } from "../generated/prisma/client.js"
+import type { ApplicationStatus } from "@prisma/client"
 
 // biome-ignore lint/style/useImportType: NestJS dependency injection requires a runtime class reference.
 import { ApplicationService } from "./application.service.js"

@@ -9,7 +9,7 @@ import type {
   ExperienceLevel,
   Job,
   Profile,
-} from "../generated/prisma/client.js"
+} from "@prisma/client"
 
 const knownSkills = [
   "react",
