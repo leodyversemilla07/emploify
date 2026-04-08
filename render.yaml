@@ -11,7 +11,7 @@ services:
     name: emploify-api
     env: node
     buildCommand: cd apps/api && bun install && bun run prisma:generate && bun run build
-    startCommand: cd apps/api && bun src/main.ts
+    startCommand: cd apps/api && node dist/main.js
     branch: main
     plan: free
     envVars:
