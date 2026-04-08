@@ -1,0 +1,397 @@
+"use client"
+
+import { Button } from "@workspace/ui/components/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@workspace/ui/components/card"
+import { Separator } from "@workspace/ui/components/separator"
+import { Textarea } from "@workspace/ui/components/textarea"
+import { cn } from "@workspace/ui/lib/utils"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useEffect, useMemo, useState } from "react"
+import { toast } from "sonner"
+
+import { useSession } from "@/lib/auth-client"
+
+type ApplicationStatus =
+  | "SAVED"
+  | "APPLIED"
+  | "INTERVIEW"
+  | "OFFER"
+  | "REJECTED"
+
+type ApplicationItem = {
+  id: string
+  status: ApplicationStatus
+  notes: string | null
+  updatedAt: string
+  createdAt: string
+  job: {
+    id: string
+    title: string
+    company: string
+    location: string | null
+    source: string
+    remote: boolean
+  }
+}
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"
+const columns: ApplicationStatus[] = [
+  "SAVED",
+  "APPLIED",
+  "INTERVIEW",
+  "OFFER",
+  "REJECTED",
+]
+
+const nextStatusMap: Record<ApplicationStatus, ApplicationStatus | null> = {
+  SAVED: "APPLIED",
+  APPLIED: "INTERVIEW",
+  INTERVIEW: "OFFER",
+  OFFER: null,
+  REJECTED: null,
+}
+
+const statusLabel: Record<ApplicationStatus, string> = {
+  SAVED: "Saved",
+  APPLIED: "Applied",
+  INTERVIEW: "Interview",
+  OFFER: "Offer",
+  REJECTED: "Rejected",
+}
+
+export function TrackerClient() {
+  const router = useRouter()
+  const { data: session, isPending } = useSession()
+  const [applications, setApplications] = useState<ApplicationItem[]>([])
+  const [draftNotes, setDraftNotes] = useState<Record<string, string>>({})
+  const [savingNotes, setSavingNotes] = useState<Record<string, boolean>>({})
+  const [draggedApplicationId, setDraggedApplicationId] = useState<
+    string | null
+  >(null)
+  const [activeDropColumn, setActiveDropColumn] =
+    useState<ApplicationStatus | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    if (!isPending && !session?.user) {
+      router.replace("/login")
+    }
+  }, [isPending, router, session])
+
+  useEffect(() => {
+    async function loadApplications() {
+      if (!session?.user?.email) return
+
+      setIsLoading(true)
+      const res = await fetch(
+        `${API_URL}/applications?email=${encodeURIComponent(session.user.email)}`,
+        { cache: "no-store" }
+      )
+      const data = (await res.json()) as ApplicationItem[]
+      setApplications(data)
+      setDraftNotes(
+        Object.fromEntries(
+          data.map((application) => [application.id, application.notes ?? ""])
+        )
+      )
+      setIsLoading(false)
+    }
+
+    void loadApplications()
+  }, [session?.user?.email])
+
+  const grouped = useMemo(() => {
+    return columns.map((status) => ({
+      status,
+      items: applications.filter(
+        (application) => application.status === status
+      ),
+    }))
+  }, [applications])
+
+  async function updateStatus(
+    applicationId: string,
+    status: ApplicationStatus
+  ) {
+    if (!session?.user?.email) return
+
+    const res = await fetch(`${API_URL}/applications/status`, {
+      method: "PUT",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        email: session.user.email,
+        applicationId,
+        status,
+      }),
+    })
+
+    if (!res.ok) {
+      toast("Could not update status", {
+        description: "Please try again in a moment.",
+      })
+      return
+    }
+
+    const updated = (await res.json()) as ApplicationItem
+    setApplications((current) =>
+      current.map((item) => (item.id === updated.id ? updated : item))
+    )
+    setDraftNotes((current) => ({
+      ...current,
+      [updated.id]: updated.notes ?? "",
+    }))
+    toast("Application updated", {
+      description: `Moved to ${status.toLowerCase()}.`,
+    })
+  }
+
+  async function saveNotes(applicationId: string) {
+    if (!session?.user?.email) return
+
+    setSavingNotes((current) => ({ ...current, [applicationId]: true }))
+
+    const res = await fetch(`${API_URL}/applications/notes`, {
+      method: "PUT",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        email: session.user.email,
+        applicationId,
+        notes: draftNotes[applicationId] ?? "",
+      }),
+    })
+
+    if (!res.ok) {
+      setSavingNotes((current) => ({ ...current, [applicationId]: false }))
+      toast("Could not save notes", {
+        description: "Please try again in a moment.",
+      })
+      return
+    }
+
+    const updated = (await res.json()) as ApplicationItem
+    setApplications((current) =>
+      current.map((item) => (item.id === updated.id ? updated : item))
+    )
+    setDraftNotes((current) => ({
+      ...current,
+      [updated.id]: updated.notes ?? "",
+    }))
+    setSavingNotes((current) => ({ ...current, [applicationId]: false }))
+    toast("Notes saved", {
+      description: "Your application notes were updated.",
+    })
+  }
+
+  function handleDragStart(applicationId: string) {
+    setDraggedApplicationId(applicationId)
+  }
+
+  function handleDragEnd() {
+    setDraggedApplicationId(null)
+    setActiveDropColumn(null)
+  }
+
+  async function handleDrop(targetStatus: ApplicationStatus) {
+    if (!draggedApplicationId) return
+
+    const application = applications.find(
+      (item) => item.id === draggedApplicationId
+    )
+    setDraggedApplicationId(null)
+    setActiveDropColumn(null)
+
+    if (!application || application.status === targetStatus) return
+
+    await updateStatus(draggedApplicationId, targetStatus)
+  }
+
+  if (isPending || !session?.user) {
+    return (
+      <div className="flex min-h-svh items-center justify-center bg-background px-6 py-10">
+        <p className="text-sm text-muted-foreground">Loading tracker...</p>
+      </div>
+    )
+  }
+
+  return (
+    <main className="min-h-svh bg-background">
+      <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-6 py-10">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-3">
+            <p className="text-sm font-medium text-muted-foreground">
+              Application tracker
+            </p>
+            <div className="flex flex-col gap-1">
+              <h1 className="text-3xl font-medium tracking-tight">
+                Move your pipeline forward.
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Drag cards across saved, applied, interview, offer, and rejected
+                columns.
+              </p>
+            </div>
+          </div>
+          <Button asChild variant="outline">
+            <Link href="/jobs">Browse jobs</Link>
+          </Button>
+        </div>
+
+        {isLoading ? (
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-sm text-muted-foreground">
+                Loading your applications...
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4 xl:grid-cols-5">
+            {grouped.map((column) => (
+              <Card
+                key={column.status}
+                className={cn(
+                  "transition-colors",
+                  activeDropColumn === column.status &&
+                    "border-primary bg-primary/5"
+                )}
+                onDragOver={(event) => {
+                  event.preventDefault()
+                  setActiveDropColumn(column.status)
+                }}
+                onDragLeave={() => {
+                  setActiveDropColumn((current) =>
+                    current === column.status ? null : current
+                  )
+                }}
+                onDrop={(event) => {
+                  event.preventDefault()
+                  void handleDrop(column.status)
+                }}
+              >
+                <CardHeader>
+                  <CardTitle className="text-base">
+                    {statusLabel[column.status]}
+                  </CardTitle>
+                  <CardDescription>
+                    {column.items.length} item
+                    {column.items.length === 1 ? "" : "s"}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
+                  {column.items.length === 0 ? (
+                    <div className="rounded-lg border border-dashed bg-background p-4">
+                      <p className="text-sm text-muted-foreground">
+                        Drop an application here.
+                      </p>
+                    </div>
+                  ) : (
+                    column.items.map((application) => {
+                      const nextStatus = nextStatusMap[application.status]
+                      const isDragging = draggedApplicationId === application.id
+
+                      return (
+                        <article
+                          aria-grabbed={isDragging}
+                          draggable
+                          key={application.id}
+                          className={cn(
+                            "rounded-lg border bg-background p-4 transition-opacity",
+                            isDragging && "opacity-50"
+                          )}
+                          onDragStart={() => handleDragStart(application.id)}
+                          onDragEnd={handleDragEnd}
+                        >
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex flex-col gap-1">
+                                <p className="text-sm font-medium">
+                                  {application.job.title}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  {application.job.company}
+                                </p>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {application.job.remote
+                                  ? "Remote"
+                                  : "Hybrid / On-site"}
+                              </p>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {application.job.location ?? "Location flexible"}{" "}
+                              · {application.job.source}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Updated{" "}
+                              {new Date(
+                                application.updatedAt
+                              ).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <Separator className="my-4" />
+                          <div className="flex flex-col gap-3">
+                            <Textarea
+                              placeholder="Add interview prep notes, next steps, recruiter details..."
+                              value={draftNotes[application.id] ?? ""}
+                              onChange={(event) =>
+                                setDraftNotes((current) => ({
+                                  ...current,
+                                  [application.id]: event.target.value,
+                                }))
+                              }
+                            />
+                            <Button
+                              onClick={() => void saveNotes(application.id)}
+                              size="sm"
+                              variant="outline"
+                            >
+                              {savingNotes[application.id]
+                                ? "Saving notes..."
+                                : "Save notes"}
+                            </Button>
+                            {nextStatus ? (
+                              <Button
+                                onClick={() =>
+                                  void updateStatus(application.id, nextStatus)
+                                }
+                                size="sm"
+                              >
+                                Move to {nextStatus.toLowerCase()}
+                              </Button>
+                            ) : null}
+                            {application.status !== "REJECTED" ? (
+                              <Button
+                                onClick={() =>
+                                  void updateStatus(application.id, "REJECTED")
+                                }
+                                size="sm"
+                                variant="ghost"
+                              >
+                                Mark rejected
+                              </Button>
+                            ) : null}
+                          </div>
+                        </article>
+                      )
+                    })
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </section>
+    </main>
+  )
+}
