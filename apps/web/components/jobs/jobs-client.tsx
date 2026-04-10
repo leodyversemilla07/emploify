@@ -80,12 +80,12 @@ export function JobsClient() {
   const [loadingMatches, setLoadingMatches] = useState<Record<string, boolean>>(
     {}
   )
-  const [explanations, setExplanations] = useState<Record<string, MatchExplanation>>(
-    {}
-  )
-  const [loadingExplanations, setLoadingExplanations] = useState<Record<string, boolean>>(
-    {}
-  )
+  const [explanations, setExplanations] = useState<
+    Record<string, MatchExplanation>
+  >({})
+  const [loadingExplanations, setLoadingExplanations] = useState<
+    Record<string, boolean>
+  >({})
   const [lastRun, setLastRun] = useState<SyncRun | null>(null)
   const [syncDetails, setSyncDetails] = useState<SyncDetails | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -495,7 +495,9 @@ export function JobsClient() {
                         size="sm"
                         variant="ghost"
                       >
-                        {isMatchLoading ? "Checking match..." : "Check AI match"}
+                        {isMatchLoading
+                          ? "Checking match..."
+                          : "Check AI match"}
                       </Button>
                       <Button
                         disabled={!match}
@@ -544,13 +546,17 @@ export function JobsClient() {
                           <>
                             <Separator />
                             <div className="flex flex-col gap-2">
-                              <p className="text-sm font-medium">AI explanation</p>
+                              <p className="text-sm font-medium">
+                                AI explanation
+                              </p>
                               <p className="text-sm text-muted-foreground">
                                 {explanations[job.id]?.explanation}
                               </p>
                             </div>
                             <div className="flex flex-col gap-2">
-                              <p className="text-sm font-medium">Score breakdown</p>
+                              <p className="text-sm font-medium">
+                                Score breakdown
+                              </p>
                               <p className="text-sm text-muted-foreground">
                                 {explanations[job.id]?.scoreBreakdown}
                               </p>
