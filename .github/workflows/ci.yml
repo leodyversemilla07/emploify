@@ -23,5 +23,8 @@ jobs:
       - name: Lint
         run: bun run lint
 
+      - name: Generate Prisma client (API)
+        run: bun --cwd apps/api run prisma:generate
+
       - name: Typecheck
         run: bun run typecheck
