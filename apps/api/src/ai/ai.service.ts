@@ -1,15 +1,9 @@
-import { Injectable } from "@nestjs/common"
 import { DefaultAzureCredential, getBearerTokenProvider } from "@azure/identity"
+import { Injectable } from "@nestjs/common"
+import type { ExperienceLevel, Job, Profile } from "@prisma/client"
 import { AzureOpenAI } from "openai"
-
 // biome-ignore lint/style/useImportType: NestJS dependency injection requires a runtime class reference.
 import { PrismaService } from "../prisma/prisma.service.js"
-
-import type {
-  ExperienceLevel,
-  Job,
-  Profile,
-} from "@prisma/client"
 
 const knownSkills = [
   "react",
@@ -76,9 +70,7 @@ type MatchExplanation = {
 
 @Injectable()
 export class AiService {
-  constructor(
-    private readonly prisma: PrismaService
-  ) {
+  constructor(private readonly prisma: PrismaService) {
     this.initializeAzureClient()
   }
 
@@ -110,16 +102,15 @@ export class AiService {
             apiVersion: "2024-10-21",
           })
         }
-        // biome-ignore lint/nursery/noConsole: Logging startup status for debugging
         console.log("[AiService] Azure OpenAI client initialized")
       } catch (error) {
-        // biome-ignore lint/nursery/noConsole: Logging initialization error
         console.error("[AiService] Failed to initialize Azure OpenAI:", error)
         this.openai = null
       }
     } else {
-      // biome-ignore lint/nursery/noConsole: Logging fallback status
-      console.log("[AiService] Azure OpenAI not configured. Set AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_DEPLOYMENT to enable.")
+      console.log(
+        "[AiService] Azure OpenAI not configured. Set AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_DEPLOYMENT to enable."
+      )
       this.openai = null
     }
   }
@@ -363,7 +354,8 @@ export class AiService {
         explanation:
           "AI explanations are not configured. Set AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_DEPLOYMENT in the backend environment to enable detailed match insights.",
         scoreBreakdown: "Configure Azure OpenAI to see score breakdown.",
-        suggestion: "Add your Azure OpenAI credentials to .env and restart the backend.",
+        suggestion:
+          "Add your Azure OpenAI credentials to .env and restart the backend.",
       }
     }
 
@@ -426,7 +418,7 @@ Format your response as JSON with keys: explanation, scoreBreakdown, suggestion.
 
       const deployment = process.env.AZURE_OPENAI_DEPLOYMENT ?? "gpt-35-turbo"
 
-      const completion = await this.openai!.chat.completions.create({
+      const completion = await this.openai.chat.completions.create({
         model: deployment,
         messages: [{ role: "user", content: prompt }],
         temperature: 0.7,

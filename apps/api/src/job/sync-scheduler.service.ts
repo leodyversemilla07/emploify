@@ -1,6 +1,5 @@
-import { Injectable } from "@nestjs/common"
-import { Logger } from "@nestjs/common"
 import type { OnModuleInit } from "@nestjs/common"
+import { Injectable, Logger } from "@nestjs/common"
 import { Cron, CronExpression } from "@nestjs/schedule"
 
 // biome-ignore lint/style/useImportType: NestJS dependency injection requires a runtime class reference.

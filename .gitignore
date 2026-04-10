@@ -40,5 +40,12 @@ npm-debug.log*
 *.sqlite
 *.sqlite3
 
+# Prisma generated client artifacts (generated at install/build time)
+apps/api/src/generated/
+
+# Agent/assistant local metadata not needed in source repo
+.agents/
+.pi/
+
 # Azure
 .azure/
