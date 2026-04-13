@@ -73,6 +73,32 @@ type SyncDetails = {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"
 
+function JobDescription({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false)
+  const needsTruncation = text.length > 280
+
+  return (
+    <div className="flex flex-col gap-2">
+      <p
+        className={`text-sm leading-7 text-muted-foreground whitespace-pre-line ${
+          !expanded && needsTruncation ? "line-clamp-3" : ""
+        }`}
+      >
+        {text}
+      </p>
+      {needsTruncation ? (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="self-start text-xs font-medium text-[var(--amber)] hover:underline"
+        >
+          {expanded ? "Show less" : "Show more"}
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
 export function JobsClient() {
   const router = useRouter()
   const { data: session, isPending } = useSession()
@@ -468,26 +494,40 @@ export function JobsClient() {
 
             return (
               <Card key={job.id}>
-                <CardHeader>
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <CardHeader className="pb-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex flex-col gap-2">
                       <div className="flex flex-col gap-1">
-                        <CardTitle>{job.title}</CardTitle>
-                        <CardDescription>
-                          {job.company} · {job.location ?? "Location flexible"}
-                        </CardDescription>
+                        <CardTitle className="text-lg">{job.title}</CardTitle>
+                        <p className="text-sm font-medium text-muted-foreground">
+                          {job.company}
+                        </p>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {job.source} ·{" "}
-                        {job.remote ? "Remote" : "On-site / Hybrid"}
-                        {job.experienceLevel ? ` · ${job.experienceLevel}` : ""}
-                      </p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center gap-1 rounded-sm border border-border bg-background px-2 py-0.5 font-mono text-[0.65rem] font-semibold uppercase tracking-widest text-muted-foreground">
+                          {job.source}
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded-sm border border-border bg-background px-2 py-0.5 font-mono text-[0.65rem] font-semibold uppercase tracking-widest text-muted-foreground">
+                          {job.remote ? "Remote" : "On-site"}
+                        </span>
+                        {job.experienceLevel ? (
+                          <span className="inline-flex items-center gap-1 rounded-sm border border-border bg-background px-2 py-0.5 font-mono text-[0.65rem] font-semibold uppercase tracking-widest text-muted-foreground">
+                            {job.experienceLevel}
+                          </span>
+                        ) : null}
+                        {job.location ? (
+                          <span className="inline-flex items-center gap-1 rounded-sm border border-border bg-background px-2 py-0.5 font-mono text-[0.65rem] font-semibold uppercase tracking-widest text-muted-foreground">
+                            {job.location}
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
-                    <div className="flex flex-col gap-2 sm:items-end">
+                    <div className="flex shrink-0 flex-wrap gap-2 sm:flex-col sm:items-end">
                       <Button
                         disabled={job.saved}
                         onClick={() => void handleSaveJob(job.id)}
                         variant={job.saved ? "secondary" : "outline"}
+                        size="sm"
                       >
                         {job.saved ? "Saved" : "Save job"}
                       </Button>
@@ -497,7 +537,7 @@ export function JobsClient() {
                         variant="ghost"
                       >
                         {isMatchLoading
-                          ? "Checking match..."
+                          ? "Checking..."
                           : "Check AI match"}
                       </Button>
                       <Button
@@ -507,16 +547,14 @@ export function JobsClient() {
                         variant="ghost"
                       >
                         {loadingExplanations[job.id]
-                          ? "Generating explanation..."
-                          : "Explain with AI"}
+                          ? "Explaining..."
+                          : "Explain"}
                       </Button>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <p className="text-sm leading-7 text-muted-foreground">
-                    {job.description}
-                  </p>
+                <CardContent className="flex flex-col gap-4 pt-0">
+                  <JobDescription text={job.description} />
 
                   {match ? (
                     <div className="border border-border bg-secondary/30 p-4">
@@ -531,7 +569,7 @@ export function JobsClient() {
                           <p className="text-sm font-medium">Strengths</p>
                           <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
                             {match.strengths.map((item) => (
-                              <li key={item}>• {item}</li>
+                              <li key={item}>- {item}</li>
                             ))}
                           </ul>
                         </div>
@@ -540,7 +578,7 @@ export function JobsClient() {
                           <p className="text-sm text-muted-foreground">
                             {match.missingSkills.length > 0
                               ? match.missingSkills.join(", ")
-                              : "No major skill gaps detected from the current heuristic."}
+                              : "No major skill gaps detected."}
                           </p>
                         </div>
                         {explanations[job.id] ? (
