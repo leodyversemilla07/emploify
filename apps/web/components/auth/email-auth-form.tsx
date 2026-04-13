@@ -161,7 +161,11 @@ export function EmailAuthForm({ mode }: { mode: "login" | "signup" }) {
       {error ? <FieldError>{error}</FieldError> : null}
 
       <div className="flex flex-col gap-3">
-        <Button type="submit" disabled={isPending}>
+        <Button
+          type="submit"
+          disabled={isPending}
+          className="bg-[var(--amber)] text-[var(--amber-foreground)] hover:bg-[var(--amber)]/80"
+        >
           {submitLabel}
         </Button>
 

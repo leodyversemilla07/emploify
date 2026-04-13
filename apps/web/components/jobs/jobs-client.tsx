@@ -21,6 +21,7 @@ import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
+import { AppNav } from "@/components/app-nav"
 import { useSession } from "@/lib/auth-client"
 
 type JobItem = {
@@ -293,18 +294,23 @@ export function JobsClient() {
 
   if (isPending || !session?.user) {
     return (
-      <div className="flex min-h-svh items-center justify-center bg-background px-6 py-10">
-        <p className="text-sm text-muted-foreground">Loading jobs...</p>
+      <div className="flex min-h-svh flex-col bg-background">
+        <AppNav current="jobs" />
+        <div className="flex flex-1 items-center justify-center px-6 py-10">
+          <p className="text-sm text-muted-foreground">Loading jobs...</p>
+        </div>
       </div>
     )
   }
 
   return (
     <main className="min-h-svh bg-background">
+      <AppNav current="jobs" />
       <section className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-10">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-3">
-            <p className="text-sm font-medium text-muted-foreground">
+            <div className="h-1 w-16 bg-[var(--amber)]" />
+            <p className="font-mono text-xs font-semibold tracking-widest text-[var(--amber)] uppercase">
               Job discovery
             </p>
             <div className="flex flex-col gap-1">
@@ -318,7 +324,10 @@ export function JobsClient() {
             </div>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Button onClick={() => void handleSyncJobs()} variant="outline">
+            <Button
+              onClick={() => void handleSyncJobs()}
+              className="bg-[var(--amber)] text-[var(--amber-foreground)] hover:bg-[var(--amber)]/80"
+            >
               {isSyncing ? "Syncing jobs..." : "Sync sources"}
             </Button>
             <Button asChild variant="outline">
@@ -518,13 +527,13 @@ export function JobsClient() {
                   </p>
 
                   {match ? (
-                    <div className="rounded-lg border bg-muted/30 p-4">
+                    <div className="border border-border bg-secondary/30 p-4">
                       <div className="flex flex-col gap-3">
                         <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-medium">
+                          <p className="font-mono text-xs font-semibold tracking-widest text-[var(--amber)] uppercase">
                             AI match insight
                           </p>
-                          <p className="text-sm font-medium">{match.score}%</p>
+                          <p className="font-mono text-sm font-semibold text-[var(--amber)]">{match.score}%</p>
                         </div>
                         <div className="flex flex-col gap-2">
                           <p className="text-sm font-medium">Strengths</p>

@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
+import { AppNav } from "@/components/app-nav"
 import { useSession } from "@/lib/auth-client"
 
 type ApplicationStatus =
@@ -218,18 +219,23 @@ export function TrackerClient() {
 
   if (isPending || !session?.user) {
     return (
-      <div className="flex min-h-svh items-center justify-center bg-background px-6 py-10">
-        <p className="text-sm text-muted-foreground">Loading tracker...</p>
+      <div className="flex min-h-svh flex-col bg-background">
+        <AppNav current="tracker" />
+        <div className="flex flex-1 items-center justify-center px-6 py-10">
+          <p className="text-sm text-muted-foreground">Loading tracker...</p>
+        </div>
       </div>
     )
   }
 
   return (
     <main className="min-h-svh bg-background">
+      <AppNav current="tracker" />
       <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-6 py-10">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex flex-col gap-3">
-            <p className="text-sm font-medium text-muted-foreground">
+            <div className="h-1 w-16 bg-[var(--amber)]" />
+            <p className="font-mono text-xs font-semibold tracking-widest text-[var(--amber)] uppercase">
               Application tracker
             </p>
             <div className="flex flex-col gap-1">
@@ -242,7 +248,10 @@ export function TrackerClient() {
               </p>
             </div>
           </div>
-          <Button asChild variant="outline">
+          <Button
+            asChild
+            className="bg-[var(--amber)] text-[var(--amber-foreground)] hover:bg-[var(--amber)]/80"
+          >
             <Link href="/jobs">Browse jobs</Link>
           </Button>
         </div>
@@ -280,7 +289,7 @@ export function TrackerClient() {
                 }}
               >
                 <CardHeader>
-                  <CardTitle className="text-base">
+                  <CardTitle className="font-mono text-xs font-semibold tracking-widest uppercase">
                     {statusLabel[column.status]}
                   </CardTitle>
                   <CardDescription>
@@ -366,6 +375,7 @@ export function TrackerClient() {
                                   void updateStatus(application.id, nextStatus)
                                 }
                                 size="sm"
+                                className="bg-[var(--amber)] text-[var(--amber-foreground)] hover:bg-[var(--amber)]/80"
                               >
                                 Move to {nextStatus.toLowerCase()}
                               </Button>

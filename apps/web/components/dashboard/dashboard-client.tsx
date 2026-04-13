@@ -23,6 +23,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
+import { AppNav } from "@/components/app-nav"
 import { signOut, useSession } from "@/lib/auth-client"
 
 type ProfileResponse = {
@@ -304,20 +305,25 @@ export function DashboardClient() {
 
   if (isPending || !session?.user) {
     return (
-      <div className="flex min-h-svh items-center justify-center bg-background px-6 py-10">
-        <p className="text-sm text-muted-foreground">
-          Loading your workspace...
-        </p>
+      <div className="flex min-h-svh flex-col bg-background">
+        <AppNav current="dashboard" />
+        <div className="flex flex-1 items-center justify-center px-6 py-10">
+          <p className="text-sm text-muted-foreground">
+            Loading your workspace...
+          </p>
+        </div>
       </div>
     )
   }
 
   return (
     <main className="min-h-svh bg-background">
+      <AppNav current="dashboard" />
       <section className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-10">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex flex-col gap-2">
-            <p className="text-sm font-medium text-muted-foreground">
+          <div className="flex flex-col gap-3">
+            <div className="h-1 w-16 bg-[var(--amber)]" />
+            <p className="font-mono text-xs font-semibold tracking-widest text-[var(--amber)] uppercase">
               Dashboard
             </p>
             <div className="flex flex-col gap-1">
@@ -331,7 +337,10 @@ export function DashboardClient() {
             </div>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Button asChild variant="outline">
+            <Button
+              asChild
+              className="bg-[var(--amber)] text-[var(--amber-foreground)] hover:bg-[var(--amber)]/80"
+            >
               <Link href="/jobs">Browse jobs</Link>
             </Button>
             <Button asChild variant="outline">
@@ -344,44 +353,54 @@ export function DashboardClient() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          <Card>
+          <Card className="border border-border">
             <CardHeader>
-              <CardDescription>Saved jobs</CardDescription>
-              <CardTitle className="text-2xl">
+              <CardDescription className="font-mono text-xs font-semibold tracking-widest uppercase">
+                Saved jobs
+              </CardDescription>
+              <CardTitle className="text-2xl font-semibold font-mono">
                 {profile?.metrics?.savedJobs ?? 0}
               </CardTitle>
             </CardHeader>
           </Card>
-          <Card>
+          <Card className="border border-border">
             <CardHeader>
-              <CardDescription>Total applications</CardDescription>
-              <CardTitle className="text-2xl">
+              <CardDescription className="font-mono text-xs font-semibold tracking-widest uppercase">
+                Total applications
+              </CardDescription>
+              <CardTitle className="text-2xl font-semibold font-mono">
                 {analytics?.totalApplications ??
                   profile?.metrics?.applications ??
                   0}
               </CardTitle>
             </CardHeader>
           </Card>
-          <Card>
+          <Card className="border border-border">
             <CardHeader>
-              <CardDescription>Interview rate</CardDescription>
-              <CardTitle className="text-2xl">
+              <CardDescription className="font-mono text-xs font-semibold tracking-widest uppercase">
+                Interview rate
+              </CardDescription>
+              <CardTitle className="text-2xl font-semibold font-mono">
                 {analytics?.interviewRate ?? 0}%
               </CardTitle>
             </CardHeader>
           </Card>
-          <Card>
+          <Card className="border border-border">
             <CardHeader>
-              <CardDescription>Offer rate</CardDescription>
-              <CardTitle className="text-2xl">
+              <CardDescription className="font-mono text-xs font-semibold tracking-widest uppercase">
+                Offer rate
+              </CardDescription>
+              <CardTitle className="text-2xl font-semibold font-mono">
                 {analytics?.offerRate ?? 0}%
               </CardTitle>
             </CardHeader>
           </Card>
-          <Card>
+          <Card className="border border-border">
             <CardHeader>
-              <CardDescription>Profile status</CardDescription>
-              <CardTitle className="text-2xl">
+              <CardDescription className="font-mono text-xs font-semibold tracking-widest uppercase">
+                Profile status
+              </CardDescription>
+              <CardTitle className="text-2xl font-semibold font-mono">
                 {isProfileComplete ? "Ready" : "Incomplete"}
               </CardTitle>
             </CardHeader>
@@ -463,7 +482,11 @@ export function DashboardClient() {
 
                 {error ? <FieldError>{error}</FieldError> : null}
 
-                <Button disabled={isSaving} type="submit">
+                <Button
+                  disabled={isSaving}
+                  type="submit"
+                  className="bg-[var(--amber)] text-[var(--amber-foreground)] hover:bg-[var(--amber)]/80"
+                >
                   {isSaving ? "Saving profile..." : "Save profile"}
                 </Button>
               </form>
@@ -495,6 +518,7 @@ export function DashboardClient() {
                   disabled={isParsingResume}
                   onClick={() => void handleParseResume()}
                   type="button"
+                  className="bg-[var(--amber)] text-[var(--amber-foreground)] hover:bg-[var(--amber)]/80"
                 >
                   {isParsingResume ? "Parsing resume..." : "Parse resume"}
                 </Button>
@@ -643,7 +667,10 @@ export function DashboardClient() {
                 )}
                 <Separator />
                 <div className="flex flex-col gap-3">
-                  <Button asChild>
+                  <Button
+                    asChild
+                    className="bg-[var(--amber)] text-[var(--amber-foreground)] hover:bg-[var(--amber)]/80"
+                  >
                     <Link href="/jobs">Find roles</Link>
                   </Button>
                   <Button asChild variant="outline">
