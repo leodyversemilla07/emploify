@@ -57,7 +57,7 @@ function AppSidebar({ current }: { current?: string }) {
                     E
                   </span>
                 </div>
-                <div className="flex flex-col gap-0.5 leading-none">
+                <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
                   <span className="font-mono text-sm font-semibold tracking-tight">
                     EMPLOIFY
                   </span>
