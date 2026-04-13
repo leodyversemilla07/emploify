@@ -21,7 +21,7 @@ import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
-import { AppNav } from "@/components/app-nav"
+import { SidebarLayout } from "@/components/sidebar-layout"
 import { useSession } from "@/lib/auth-client"
 
 type JobItem = {
@@ -294,34 +294,26 @@ export function JobsClient() {
 
   if (isPending || !session?.user) {
     return (
-      <div className="flex min-h-svh flex-col bg-background">
-        <AppNav current="jobs" />
+      <SidebarLayout current="jobs">
         <div className="flex flex-1 items-center justify-center px-6 py-10">
           <p className="text-sm text-muted-foreground">Loading jobs...</p>
         </div>
-      </div>
+      </SidebarLayout>
     )
   }
 
   return (
-    <main className="min-h-svh bg-background">
-      <AppNav current="jobs" />
+    <SidebarLayout current="jobs">
       <section className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-10">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-3">
-            <div className="h-1 w-16 bg-[var(--amber)]" />
-            <p className="font-mono text-xs font-semibold tracking-widest text-[var(--amber)] uppercase">
-              Job discovery
+            <h1 className="text-3xl font-medium tracking-tight">
+              Find roles that fit your profile.
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Search across sample ATS listings now, then connect Greenhouse,
+              Lever, and Ashby sources through the sync flow.
             </p>
-            <div className="flex flex-col gap-1">
-              <h1 className="text-3xl font-medium tracking-tight">
-                Find roles that fit your profile.
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Search across sample ATS listings now, then connect Greenhouse,
-                Lever, and Ashby sources through the sync flow.
-              </p>
-            </div>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button
@@ -595,6 +587,6 @@ export function JobsClient() {
           })}
         </div>
       </section>
-    </main>
+    </SidebarLayout>
   )
 }

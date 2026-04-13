@@ -1,4 +1,14 @@
+"use client"
+
 import { Button } from "@workspace/ui/components/button"
+import { cn } from "@workspace/ui/lib/utils"
+import {
+  LayoutDashboard,
+  Briefcase,
+  Columns3,
+  User,
+  LogOut,
+} from "lucide-react"
 import Link from "next/link"
 
 export function AppNav({ current }: { current?: string }) {
@@ -15,6 +25,13 @@ export function AppNav({ current }: { current?: string }) {
         <div className="hidden items-center gap-1 sm:flex">
           <Button
             asChild
+            variant={current === "dashboard" ? "secondary" : "ghost"}
+            size="sm"
+          >
+            <Link href="/dashboard">Dashboard</Link>
+          </Button>
+          <Button
+            asChild
             variant={current === "jobs" ? "secondary" : "ghost"}
             size="sm"
           >
@@ -29,10 +46,10 @@ export function AppNav({ current }: { current?: string }) {
           </Button>
           <Button
             asChild
-            variant={current === "dashboard" ? "secondary" : "ghost"}
+            variant={current === "profile" ? "secondary" : "ghost"}
             size="sm"
           >
-            <Link href="/dashboard">Dashboard</Link>
+            <Link href="/profile">Profile</Link>
           </Button>
         </div>
       </div>

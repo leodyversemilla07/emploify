@@ -16,7 +16,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
-import { AppNav } from "@/components/app-nav"
+import { SidebarLayout } from "@/components/sidebar-layout"
 import { useSession } from "@/lib/auth-client"
 
 type ApplicationStatus =
@@ -219,34 +219,26 @@ export function TrackerClient() {
 
   if (isPending || !session?.user) {
     return (
-      <div className="flex min-h-svh flex-col bg-background">
-        <AppNav current="tracker" />
+      <SidebarLayout current="tracker">
         <div className="flex flex-1 items-center justify-center px-6 py-10">
           <p className="text-sm text-muted-foreground">Loading tracker...</p>
         </div>
-      </div>
+      </SidebarLayout>
     )
   }
 
   return (
-    <main className="min-h-svh bg-background">
-      <AppNav current="tracker" />
+    <SidebarLayout current="tracker">
       <section className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-6 py-10">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex flex-col gap-3">
-            <div className="h-1 w-16 bg-[var(--amber)]" />
-            <p className="font-mono text-xs font-semibold tracking-widest text-[var(--amber)] uppercase">
-              Application tracker
+            <h1 className="text-3xl font-medium tracking-tight">
+              Move your pipeline forward.
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Drag cards across saved, applied, interview, offer, and rejected
+              columns.
             </p>
-            <div className="flex flex-col gap-1">
-              <h1 className="text-3xl font-medium tracking-tight">
-                Move your pipeline forward.
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Drag cards across saved, applied, interview, offer, and rejected
-                columns.
-              </p>
-            </div>
           </div>
           <Button
             asChild
@@ -402,6 +394,6 @@ export function TrackerClient() {
           </div>
         )}
       </section>
-    </main>
+    </SidebarLayout>
   )
 }
