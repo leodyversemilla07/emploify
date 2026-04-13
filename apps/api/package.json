@@ -17,8 +17,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@azure/identity": "^4.13.1",
-    "@azure/openai": "^2.0.0",
+    "@anthropic-ai/sdk": "^0.88.0",
     "@better-auth/cli": "^1.4.21",
     "@better-auth/prisma-adapter": "^1.6.0",
     "@nestjs/common": "^11.0.1",

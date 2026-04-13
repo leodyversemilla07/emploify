@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common"
 import { ConfigModule } from "@nestjs/config"
 
 import { AiModule } from "./ai/ai.module.js"
+import { LlmModule } from "./llm/index.js"
 import { ApplicationModule } from "./application/application.module.js"
 import { AuthController } from "./auth/auth.controller.js"
 import { JobModule } from "./job/job.module.js"
@@ -11,6 +12,7 @@ import { UserModule } from "./user/user.module.js"
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    LlmModule,
     PrismaModule,
     UserModule,
     JobModule,

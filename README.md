@@ -23,7 +23,7 @@ Job seekers often juggle multiple job boards, spreadsheets, and notes. Emploify 
 - Backend: NestJS 11
 - Database: PostgreSQL + Prisma
 - Auth: Better Auth (email/password + optional social login)
-- AI: Azure OpenAI (optional; heuristic fallback included)
+- AI: Any OpenAI-compatible or Anthropic provider (optional; heuristic fallback included)
 - UI: shadcn/ui-style component setup
 
 ## Core MVP features
@@ -44,7 +44,7 @@ Job seekers often juggle multiple job boards, spreadsheets, and notes. Emploify 
   - Per-application notes
 - AI support
   - Match score + strengths + missing skills
-  - Optional AI explanation endpoint when Azure OpenAI is configured
+  - Optional AI explanation endpoint when an LLM provider is configured
 - Analytics
   - Application totals and conversion indicators (interview rate, offer rate)
 
@@ -89,7 +89,22 @@ Update required values in `apps/api/.env`:
 - `BETTER_AUTH_URL`
 - `FRONTEND_URL`
 
-### 4) Prepare database
+### 4) (Optional) Configure AI provider
+
+The AI explanation endpoint works with any OpenAI-compatible or Anthropic API. Set these in `apps/api/.env`:
+
+```
+LLM_PROVIDER=openai-compat   # or "anthropic"
+LLM_API_KEY=your-api-key
+LLM_BASE_URL=https://api.openai.com/v1
+LLM_MODEL=gpt-4o-mini
+```
+
+Works out of the box with: OpenAI, Azure OpenAI, Groq, Together, OpenRouter, Ollama (local), and Anthropic. See `.env.example` for provider-specific examples.
+
+When no LLM is configured, match scoring still works via heuristics.
+
+### 5) Prepare database
 
 ```bash
 cd apps/api
@@ -103,7 +118,7 @@ For local development during schema iteration, you may use:
 bunx prisma db push
 ```
 
-### 5) Run web + api together
+### 6) Run web + api together
 
 From repo root:
 

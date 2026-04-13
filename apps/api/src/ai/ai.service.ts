@@ -1,9 +1,9 @@
-import { DefaultAzureCredential, getBearerTokenProvider } from "@azure/identity"
 import { Injectable } from "@nestjs/common"
 import type { ExperienceLevel, Job, Profile } from "@prisma/client"
-import { AzureOpenAI } from "openai"
 // biome-ignore lint/style/useImportType: NestJS dependency injection requires a runtime class reference.
 import { PrismaService } from "../prisma/prisma.service.js"
+// biome-ignore lint/style/useImportType: NestJS dependency injection requires a runtime class reference.
+import { LlmProvider } from "../llm/index.js"
 
 const knownSkills = [
   "react",
@@ -70,50 +70,10 @@ type MatchExplanation = {
 
 @Injectable()
 export class AiService {
-  constructor(private readonly prisma: PrismaService) {
-    this.initializeAzureClient()
-  }
-
-  private openai!: AzureOpenAI | null
-
-  private async initializeAzureClient() {
-    const endpoint = process.env.AZURE_OPENAI_ENDPOINT
-    const deployment = process.env.AZURE_OPENAI_DEPLOYMENT
-    const apiKey = process.env.AZURE_OPENAI_API_KEY
-
-    if (endpoint && deployment) {
-      try {
-        if (apiKey) {
-          // Use API key authentication
-          this.openai = new AzureOpenAI({
-            endpoint,
-            deployment,
-            apiKey,
-            apiVersion: "2024-10-21",
-          })
-        } else {
-          // Use Entra ID (managed identity / default credentials)
-          const credential = new DefaultAzureCredential()
-          const scope = "https://cognitiveservices.azure.com/.default"
-          const azureADTokenProvider = getBearerTokenProvider(credential, scope)
-          this.openai = new AzureOpenAI({
-            azureADTokenProvider,
-            deployment,
-            apiVersion: "2024-10-21",
-          })
-        }
-        console.log("[AiService] Azure OpenAI client initialized")
-      } catch (error) {
-        console.error("[AiService] Failed to initialize Azure OpenAI:", error)
-        this.openai = null
-      }
-    } else {
-      console.log(
-        "[AiService] Azure OpenAI not configured. Set AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_DEPLOYMENT to enable."
-      )
-      this.openai = null
-    }
-  }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly llm: LlmProvider,
+  ) {}
 
   private normalizeSkills(input: string | null | undefined) {
     return (input ?? "")
@@ -349,13 +309,13 @@ export class AiService {
     email: string
     jobId: string
   }): Promise<MatchExplanation> {
-    if (!this.openai) {
+    if (!this.llm.isAvailable) {
       return {
         explanation:
-          "AI explanations are not configured. Set AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_DEPLOYMENT in the backend environment to enable detailed match insights.",
-        scoreBreakdown: "Configure Azure OpenAI to see score breakdown.",
+          "AI explanations are not configured. Set LLM_API_KEY (and optionally LLM_PROVIDER, LLM_BASE_URL, LLM_MODEL) in the backend environment to enable detailed match insights.",
+        scoreBreakdown: "Configure an LLM provider to see score breakdown.",
         suggestion:
-          "Add your Azure OpenAI credentials to .env and restart the backend.",
+          "Add your LLM credentials to .env and restart the backend.",
       }
     }
 
@@ -392,8 +352,7 @@ Job Details:
 - Description: ${job.description}
 `.trim()
 
-    const prompt = `
-You are an AI career advisor. Given a user profile and a job description, provide a helpful match explanation.
+    const prompt = `You are an AI career advisor. Given a user profile and a job description, provide a helpful match explanation.
 
 ${profileSummary}
 
@@ -412,27 +371,14 @@ Format your response as JSON with keys: explanation, scoreBreakdown, suggestion.
 `
 
     try {
-      if (!this.openai) {
-        throw new Error("Azure OpenAI client not initialized")
+      const content = await this.llm.chat(
+        [{ role: "user", content: prompt }],
+        { temperature: 0.7, maxTokens: 500, json: true },
+      )
+
+      if (!content) {
+        throw new Error("Empty response from LLM")
       }
-
-      const deployment = process.env.AZURE_OPENAI_DEPLOYMENT ?? "gpt-35-turbo"
-
-      const completion = await this.openai.chat.completions.create({
-        model: deployment,
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
-        max_tokens: 500,
-        response_format: { type: "json_object" },
-      })
-
-      const message = completion.choices[0]?.message
-
-      if (!message?.content) {
-        throw new Error("Empty response from OpenAI")
-      }
-
-      const content = message.content
 
       const parsed = JSON.parse(content) as {
         explanation: string
@@ -454,7 +400,7 @@ Format your response as JSON with keys: explanation, scoreBreakdown, suggestion.
         scoreBreakdown:
           "AI explanation service temporarily unavailable. Showing heuristic match details instead.",
         suggestion:
-          "Check your Azure OpenAI configuration and quota, or try again in a few minutes.",
+          "Check your LLM provider configuration and quota, or try again in a few minutes.",
       }
     }
   }
