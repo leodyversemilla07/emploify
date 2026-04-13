@@ -16,6 +16,7 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@workspace/ui/components/sidebar"
+import { useIsMobile } from "@workspace/ui/hooks/use-mobile"
 import { cn } from "@workspace/ui/lib/utils"
 import {
   LayoutDashboard,
@@ -37,6 +38,7 @@ const navItems = [
 
 function AppSidebar({ current }: { current?: string }) {
   const router = useRouter()
+  const isMobile = useIsMobile()
 
   async function handleSignOut() {
     await signOut()
@@ -46,7 +48,7 @@ function AppSidebar({ current }: { current?: string }) {
 
   return (
     <Sidebar variant="inset" collapsible="icon">
-      <SidebarHeader className="border-b border-sidebar-border">
+      <SidebarHeader className="border-b border-sidebar-border p-3">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
@@ -67,31 +69,35 @@ function AppSidebar({ current }: { current?: string }) {
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel className="font-mono text-[0.65rem] font-semibold tracking-widest uppercase">
+      <SidebarContent className="px-3 py-2">
+        <SidebarGroup className="p-0">
+          <SidebarGroupLabel className="px-2 font-mono text-[0.65rem] font-semibold tracking-widest uppercase">
             Workspace
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-2">
               {navItems.map((item) => {
                 const active = current === item.title.toLowerCase()
                 return (
-                <SidebarMenuItem key={item.href} className={cn(
-                  "border-l-2 transition-colors",
-                  active ? "border-[var(--amber)]" : "border-transparent"
-                )}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={active}
-                    tooltip={item.title}
+                  <SidebarMenuItem
+                    key={item.href}
+                    className={cn(
+                      "border-l-2 transition-colors",
+                      active ? "border-[var(--amber)]" : "border-transparent"
+                    )}
                   >
-                    <Link href={item.href}>
-                      <item.icon className="size-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={active}
+                      tooltip={item.title}
+                      className={cn(isMobile && "h-11 text-base")}
+                    >
+                      <Link href={item.href}>
+                        <item.icon className="size-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                 )
               })}
             </SidebarMenu>
@@ -99,13 +105,22 @@ function AppSidebar({ current }: { current?: string }) {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border">
-        <SidebarMenu>
-          <SidebarMenuItem className={cn(
-            "border-l-2 transition-colors",
-            current === "profile" ? "border-[var(--amber)]" : "border-transparent"
-          )}>
-            <SidebarMenuButton asChild tooltip="Profile" isActive={current === "profile"}>
+      <SidebarFooter className="border-t border-sidebar-border px-3 py-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+        <SidebarMenu className="gap-2">
+          <SidebarMenuItem
+            className={cn(
+              "border-l-2 transition-colors",
+              current === "profile"
+                ? "border-[var(--amber)]"
+                : "border-transparent"
+            )}
+          >
+            <SidebarMenuButton
+              asChild
+              tooltip="Profile"
+              isActive={current === "profile"}
+              className={cn(isMobile && "h-11 text-base")}
+            >
               <Link href="/profile">
                 <User className="size-4" />
                 <span>Profile</span>
@@ -113,7 +128,11 @@ function AppSidebar({ current }: { current?: string }) {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={() => void handleSignOut()} tooltip="Sign out">
+            <SidebarMenuButton
+              onClick={() => void handleSignOut()}
+              tooltip="Sign out"
+              className={cn(isMobile && "h-11 text-base")}
+            >
               <LogOut className="size-4" />
               <span>Sign out</span>
             </SidebarMenuButton>
