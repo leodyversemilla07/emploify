@@ -349,9 +349,6 @@ export function JobsClient() {
           </div>
         </div>
 
-          </CardContent>
-        </Card>
-
         <Card>
           <CardHeader>
             <CardTitle>Filters</CardTitle>
