@@ -34,7 +34,6 @@ const navItems = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "Jobs", href: "/jobs", icon: Briefcase },
   { title: "Tracker", href: "/tracker", icon: Columns3 },
-  { title: "Profile", href: "/profile", icon: User },
 ]
 
 function AppSidebar({ current }: { current?: string }) {
@@ -103,6 +102,14 @@ function AppSidebar({ current }: { current?: string }) {
 
       <SidebarFooter className="border-t border-sidebar-border">
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Profile">
+              <Link href="/profile">
+                <User className="size-4" />
+                <span>Profile</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={() => void handleSignOut()} tooltip="Sign out">
               <LogOut className="size-4" />
