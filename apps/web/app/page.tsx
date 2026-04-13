@@ -314,7 +314,7 @@ export default function Page() {
           </div>
 
           {/* Stats */}
-          <div className="mt-16 flex gap-10 border-t border-border pt-8 sm:gap-16">
+          <div className="mt-16 flex flex-wrap gap-10 border-t border-border pt-8 sm:gap-16">
             <Stat value="3" label="Job sources" delay="delay-500" />
             <Stat value="5" label="Kanban stages" delay="delay-600" />
             <Stat value="1" label="Dashboard view" delay="delay-700" />

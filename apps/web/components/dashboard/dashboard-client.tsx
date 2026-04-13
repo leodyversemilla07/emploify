@@ -146,7 +146,7 @@ export function DashboardClient() {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <Card className="border border-border">
             <CardHeader>
               <CardDescription className="font-mono text-xs font-semibold tracking-widest uppercase">
@@ -201,7 +201,7 @@ export function DashboardClient() {
           </Card>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+        <div className="grid gap-4 sm:grid-cols-[1.05fr_0.95fr]">
           {/* Profile summary + link */}
           <Card>
             <CardHeader>

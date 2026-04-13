@@ -249,7 +249,7 @@ export function ProfileClient() {
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+        <div className="grid gap-4 sm:grid-cols-2">
           {/* Profile form */}
           <Card>
             <CardHeader>

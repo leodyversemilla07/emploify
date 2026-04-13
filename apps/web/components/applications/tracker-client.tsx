@@ -259,7 +259,7 @@ export function TrackerClient() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid gap-4 xl:grid-cols-5">
+          <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
             {grouped.map((column) => (
               <Card
                 key={column.status}

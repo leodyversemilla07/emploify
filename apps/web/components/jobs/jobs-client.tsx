@@ -362,7 +362,7 @@ export function JobsClient() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
               <div className="rounded-lg border bg-background p-4">
                 <p className="text-xs text-muted-foreground">Last status</p>
                 <p className="text-sm font-medium">
@@ -392,7 +392,7 @@ export function JobsClient() {
                 "Configure provider env vars and run a sync to import live jobs."}
             </p>
             {syncDetails?.providers?.length ? (
-              <div className="grid gap-3 md:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
                 {syncDetails.providers.map((provider) => (
                   <div
                     key={provider.source}
@@ -428,7 +428,7 @@ export function JobsClient() {
           </CardHeader>
           <CardContent>
             <FieldGroup>
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <Field>
                   <FieldLabel htmlFor="search">Role or keyword</FieldLabel>
                   <Input
