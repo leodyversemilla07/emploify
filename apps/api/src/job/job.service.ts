@@ -282,22 +282,105 @@ export class JobService {
     })
 
     if (!filters.email) {
-      return jobs.map((job) => ({ ...job, saved: false }))
+      return jobs.map((job) => ({ ...job, saved: false, matchScore: null }))
     }
 
-    const savedJobs = await this.prisma.savedJob.findMany({
-      where: {
-        user: { email: filters.email },
-      },
-      select: { jobId: true },
-    })
+    const [savedJobs, user] = await Promise.all([
+      this.prisma.savedJob.findMany({
+        where: { user: { email: filters.email } },
+        select: { jobId: true },
+      }),
+      this.prisma.user.findUnique({
+        where: { email: filters.email },
+        include: { profile: true },
+      }),
+    ])
 
     const savedSet = new Set(savedJobs.map((item) => item.jobId))
 
-    return jobs.map((job) => ({
-      ...job,
-      saved: savedSet.has(job.id),
-    }))
+    // Compute match scores
+    const profileSkills = (user?.profile?.skills ?? "")
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean)
+
+    const profileLevel = user?.profile?.experienceLevel
+
+    const scored = jobs.map((job) => {
+      const matchScore = this.computeQuickMatch(
+        profileSkills,
+        profileLevel,
+        job,
+      )
+      return {
+        ...job,
+        saved: savedSet.has(job.id),
+        matchScore,
+      }
+    })
+
+    // Sort by match score descending, then by date
+    scored.sort((a, b) => {
+      if (a.matchScore !== null && b.matchScore !== null) {
+        return b.matchScore - a.matchScore
+      }
+      if (a.matchScore !== null) return -1
+      if (b.matchScore !== null) return 1
+      return 0
+    })
+
+    return scored
+  }
+
+  private knownSkills = [
+    "react", "next.js", "nextjs", "typescript", "javascript", "nestjs",
+    "node.js", "node", "postgresql", "prisma", "tailwind", "design systems",
+    "api", "apis", "sql", "graphql", "docker", "aws", "testing", "redis",
+    "python", "java",
+  ]
+
+  private computeQuickMatch(
+    profileSkills: string[],
+    profileLevel: ExperienceLevel | null | undefined,
+    job: { title: string; description: string; company: string; remote: boolean; experienceLevel: ExperienceLevel | null },
+  ) {
+    const haystack = `${job.title} ${job.description} ${job.company}`.toLowerCase()
+    const jobSkills = this.knownSkills.filter((s) => haystack.includes(s))
+
+    if (jobSkills.length === 0 && !profileLevel && !job.experienceLevel) {
+      return null
+    }
+
+    let score = 35
+
+    if (jobSkills.length > 0) {
+      const matched = jobSkills.filter((skill) =>
+        profileSkills.some(
+          (ps) => ps.includes(skill) || skill.includes(ps),
+        ),
+      )
+      score += Math.round((matched.length / jobSkills.length) * 45)
+    }
+
+    // Experience bonus
+    if (profileLevel && job.experienceLevel) {
+      if (profileLevel === job.experienceLevel) score += 15
+      else if (
+        profileLevel === "SENIOR" &&
+        ["MID", "JUNIOR", "INTERN"].includes(job.experienceLevel)
+      ) score += 10
+      else if (
+        profileLevel === "MID" &&
+        ["JUNIOR", "INTERN"].includes(job.experienceLevel)
+      ) score += 8
+      else if (profileLevel === "JUNIOR" && job.experienceLevel === "INTERN")
+        score += 6
+    }
+
+    // Remote bonus
+    if (job.remote) score += 5
+
+    return Math.min(score, 100)
   }
 
   async saveJob(input: { email: string; jobId: string }) {

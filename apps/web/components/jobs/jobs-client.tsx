@@ -35,6 +35,7 @@ type JobItem = {
   experienceLevel: "INTERN" | "JUNIOR" | "MID" | "SENIOR" | null
   postedAt: string | null
   saved: boolean
+  matchScore: number | null
 }
 
 type MatchInsight = {
@@ -499,9 +500,16 @@ export function JobsClient() {
                     <div className="flex flex-col gap-2">
                       <div className="flex flex-col gap-1">
                         <CardTitle className="text-lg">{job.title}</CardTitle>
-                        <p className="text-sm font-medium text-muted-foreground">
-                          {job.company}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-muted-foreground">
+                            {job.company}
+                          </p>
+                          {job.matchScore !== null ? (
+                            <span className="font-mono text-xs font-semibold text-[var(--amber)]">
+                              {job.matchScore}%
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="inline-flex items-center gap-1 rounded-sm border border-border bg-background px-2 py-0.5 font-mono text-[0.65rem] font-semibold uppercase tracking-widest text-muted-foreground">
