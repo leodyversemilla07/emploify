@@ -76,11 +76,16 @@ function AppSidebar({ current }: { current?: string }) {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
+              {navItems.map((item) => {
+                const active = current === item.title.toLowerCase()
+                return (
+                <SidebarMenuItem key={item.href} className={cn(
+                  "border-l-2 transition-colors",
+                  active ? "border-[var(--amber)]" : "border-transparent"
+                )}>
                   <SidebarMenuButton
                     asChild
-                    isActive={current === item.title.toLowerCase()}
+                    isActive={active}
                     tooltip={item.title}
                   >
                     <Link href={item.href}>
@@ -89,7 +94,8 @@ function AppSidebar({ current }: { current?: string }) {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              ))}
+                )
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
