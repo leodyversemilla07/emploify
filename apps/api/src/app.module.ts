@@ -5,6 +5,7 @@ import { AiModule } from "./ai/ai.module.js"
 import { LlmModule } from "./llm/index.js"
 import { ApplicationModule } from "./application/application.module.js"
 import { AuthController } from "./auth/auth.controller.js"
+import { HealthController } from "./health.controller.js"
 import { JobModule } from "./job/job.module.js"
 import { PrismaModule } from "./prisma/prisma.module.js"
 import { UserModule } from "./user/user.module.js"
@@ -19,7 +20,7 @@ import { UserModule } from "./user/user.module.js"
     ApplicationModule,
     AiModule,
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, HealthController],
   providers: [],
 })
 export class AppModule {}
