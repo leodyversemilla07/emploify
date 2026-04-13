@@ -14,7 +14,6 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarRail,
-  SidebarSeparator,
   SidebarTrigger,
 } from "@workspace/ui/components/sidebar"
 import { cn } from "@workspace/ui/lib/utils"
@@ -95,37 +94,18 @@ function AppSidebar({ current }: { current?: string }) {
                 </SidebarMenuItem>
                 )
               })}
-              <SidebarSeparator className="my-2" />
-              <SidebarMenuItem className={cn(
-                "border-l-2 transition-colors",
-                current === "profile" ? "border-[var(--amber)]" : "border-transparent"
-              )}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={current === "profile"}
-                  tooltip="Profile"
-                >
-                  <Link href="/profile">
-                    <User className="size-4" />
-                    <span>Profile</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton onClick={() => void handleSignOut()} tooltip="Sign out">
-                  <LogOut className="size-4" />
-                  <span>Sign out</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border hidden md:flex">
+      <SidebarFooter className="border-t border-sidebar-border">
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Profile">
+          <SidebarMenuItem className={cn(
+            "border-l-2 transition-colors",
+            current === "profile" ? "border-[var(--amber)]" : "border-transparent"
+          )}>
+            <SidebarMenuButton asChild tooltip="Profile" isActive={current === "profile"}>
               <Link href="/profile">
                 <User className="size-4" />
                 <span>Profile</span>
