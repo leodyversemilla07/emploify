@@ -12,6 +12,7 @@ import { Input } from "@workspace/ui/components/input"
 import { Separator } from "@workspace/ui/components/separator"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { Spinner } from "@workspace/ui/components/spinner"
 import { useMemo, useState } from "react"
 import { signIn, signUp } from "@/lib/auth-client"
 
@@ -166,6 +167,7 @@ export function EmailAuthForm({ mode }: { mode: "login" | "signup" }) {
           disabled={isPending}
           className="bg-[var(--amber)] text-[var(--amber-foreground)] hover:bg-[var(--amber)]/80"
         >
+          {isPending && <Spinner className="mr-2" />}
           {submitLabel}
         </Button>
 
@@ -184,6 +186,7 @@ export function EmailAuthForm({ mode }: { mode: "login" | "signup" }) {
                   type="button"
                   variant="outline"
                 >
+                  {isPending && <Spinner className="mr-2" />}
                   Continue with Google
                 </Button>
               ) : null}
@@ -194,6 +197,7 @@ export function EmailAuthForm({ mode }: { mode: "login" | "signup" }) {
                   type="button"
                   variant="outline"
                 >
+                  {isPending && <Spinner className="mr-2" />}
                   Continue with GitHub
                 </Button>
               ) : null}
