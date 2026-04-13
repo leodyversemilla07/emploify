@@ -236,7 +236,7 @@ export function ProfileClient() {
               This powers job matching, resume insights, and recommendations.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <span
               className={`font-mono text-xs font-semibold tracking-widest uppercase ${
                 isProfileComplete

@@ -123,7 +123,7 @@ export function DashboardClient() {
   return (
     <SidebarLayout current="dashboard">
       <section className="mx-auto flex w-full max-w-6xl flex-col gap-8">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex flex-col gap-3">
             <h1 className="text-3xl font-medium tracking-tight">
               Welcome back, {session.user.name ?? "there"}.

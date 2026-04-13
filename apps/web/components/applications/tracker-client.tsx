@@ -240,12 +240,14 @@ export function TrackerClient() {
               columns.
             </p>
           </div>
-          <Button
-            asChild
-            className="bg-[var(--amber)] text-[var(--amber-foreground)] hover:bg-[var(--amber)]/80"
-          >
-            <Link href="/jobs">Browse jobs</Link>
-          </Button>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button
+              asChild
+              className="bg-[var(--amber)] text-[var(--amber-foreground)] hover:bg-[var(--amber)]/80"
+            >
+              <Link href="/jobs">Browse jobs</Link>
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (
