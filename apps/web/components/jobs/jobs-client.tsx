@@ -338,84 +338,17 @@ export function JobsClient() {
               Find roles that fit your profile.
             </h1>
             <p className="text-sm text-muted-foreground">
-              Search across sample ATS listings now, then connect Greenhouse,
-              Lever, and Ashby sources through the sync flow.
+              Jobs are scored against your profile automatically. Highest
+              matches appear first.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Button
-              onClick={() => void handleSyncJobs()}
-              className="bg-[var(--amber)] text-[var(--amber-foreground)] hover:bg-[var(--amber)]/80"
-            >
-              {isSyncing ? "Syncing jobs..." : "Sync sources"}
-            </Button>
             <Button asChild variant="outline">
               <Link href="/tracker">Open tracker</Link>
             </Button>
           </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Source sync status</CardTitle>
-            <CardDescription>
-              Review the latest import run before browsing newly synced jobs.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
-              <div className="rounded-lg border bg-background p-4">
-                <p className="text-xs text-muted-foreground">Last status</p>
-                <p className="text-sm font-medium">
-                  {lastRun?.status ?? "Not run yet"}
-                </p>
-              </div>
-              <div className="rounded-lg border bg-background p-4">
-                <p className="text-xs text-muted-foreground">Imported</p>
-                <p className="text-sm font-medium">{lastRun?.imported ?? 0}</p>
-              </div>
-              <div className="rounded-lg border bg-background p-4">
-                <p className="text-xs text-muted-foreground">Sources</p>
-                <p className="text-sm font-medium">{lastRun?.sources || "—"}</p>
-              </div>
-              <div className="rounded-lg border bg-background p-4">
-                <p className="text-xs text-muted-foreground">Completed</p>
-                <p className="text-sm font-medium">
-                  {lastRun?.completedAt
-                    ? new Date(lastRun.completedAt).toLocaleString()
-                    : "—"}
-                </p>
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {syncDetails?.summary ??
-                lastRun?.details ??
-                "Configure provider env vars and run a sync to import live jobs."}
-            </p>
-            {syncDetails?.providers?.length ? (
-              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-                {syncDetails.providers.map((provider) => (
-                  <div
-                    key={provider.source}
-                    className="rounded-lg border bg-background p-4"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-medium">{provider.source}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {provider.status}
-                      </p>
-                    </div>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      Imported {provider.imported} role
-                      {provider.imported === 1 ? "" : "s"}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {provider.message}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : null}
           </CardContent>
         </Card>
 
@@ -423,8 +356,7 @@ export function JobsClient() {
           <CardHeader>
             <CardTitle>Filters</CardTitle>
             <CardDescription>
-              Start with simple filters from the PRD: role, location, source,
-              remote, and experience level.
+              Filter by role, location, source, remote, and experience level.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -457,22 +389,19 @@ export function JobsClient() {
                     onChange={(event) => setSource(event.target.value)}
                   />
                 </Field>
-                <Field>
-                  <FieldLabel htmlFor="experienceLevel">
-                    Experience level
-                  </FieldLabel>
-                  <Input
-                    id="experienceLevel"
-                    placeholder="INTERN, JUNIOR, MID"
-                    value={experienceLevel}
-                    onChange={(event) =>
-                      setExperienceLevel(event.target.value.toUpperCase())
-                    }
-                  />
-                  <FieldDescription>
-                    Use the enum values from the dashboard for now.
-                  </FieldDescription>
-                </Field>
+                  <Field>
+                    <FieldLabel htmlFor="experienceLevel">
+                      Experience level
+                    </FieldLabel>
+                    <Input
+                      id="experienceLevel"
+                      placeholder="INTERN, JUNIOR, MID"
+                      value={experienceLevel}
+                      onChange={(event) =>
+                        setExperienceLevel(event.target.value.toUpperCase())
+                      }
+                    />
+                  </Field>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <Button
