@@ -212,8 +212,58 @@ export class AiService {
     }
   }
 
-  parseResumeText(resumeText: string): ResumeParseResult {
+  async parseResumeText(resumeText: string): Promise<ResumeParseResult> {
     const cleaned = resumeText.trim()
+
+    // Try LLM-based extraction first
+    if (this.llm.isAvailable) {
+      try {
+        const prompt = `Extract structured data from this resume text. Return ONLY valid JSON.
+
+Resume:
+${cleaned.slice(0, 3000)}
+
+Extract:
+- skills: array of technical skills, frameworks, tools, and languages mentioned (normalize casing, e.g. "react" not "React")
+- experienceLevel: one of "INTERN", "JUNIOR", "MID", "SENIOR" based on years of experience or titles. null if unclear.
+- location: city/country if mentioned, null otherwise
+- summary: a 1-2 sentence professional summary of the candidate
+
+JSON format: {"skills": [...], "experienceLevel": "...", "location": "...", "summary": "..."}`
+
+        const content = await this.llm.chat(
+          [{ role: "user", content: prompt }],
+          { temperature: 0.3, maxTokens: 500, json: true },
+        )
+
+        if (content) {
+          const parsed = JSON.parse(content) as {
+            skills?: string[]
+            experienceLevel?: string | null
+            location?: string | null
+            summary?: string
+          }
+
+          const validLevels = ["INTERN", "JUNIOR", "MID", "SENIOR"]
+          const level = parsed.experienceLevel
+            ?.toUpperCase()
+            .trim()
+
+          return {
+            summary: parsed.summary?.trim() || cleaned.slice(0, 220).trim(),
+            location: parsed.location?.trim() || null,
+            skills: (parsed.skills ?? []).map((s) => s.trim()).filter(Boolean),
+            experienceLevel: level && validLevels.includes(level)
+              ? (level as ResumeParseResult["experienceLevel"])
+              : null,
+          }
+        }
+      } catch {
+        // Fall through to heuristic
+      }
+    }
+
+    // Heuristic fallback
     const skills = this.extractSkills(cleaned)
     const experienceLevel = this.inferExperienceLevel(cleaned)
     const location = this.inferLocation(cleaned)
@@ -225,6 +275,40 @@ export class AiService {
       skills,
       experienceLevel,
     }
+  }
+
+  async parseResumeAndUpdateProfile(input: {
+    email: string
+    resumeText: string
+  }) {
+    const parsed = await this.parseResumeText(input.resumeText)
+
+    const user = await this.prisma.user.findUnique({
+      where: { email: input.email },
+    })
+
+    if (!user) {
+      throw new Error("User not found")
+    }
+
+    const skillsStr = parsed.skills.join(", ")
+
+    await this.prisma.profile.upsert({
+      where: { userId: user.id },
+      update: {
+        skills: skillsStr,
+        experienceLevel: parsed.experienceLevel,
+        location: parsed.location,
+      },
+      create: {
+        userId: user.id,
+        skills: skillsStr,
+        experienceLevel: parsed.experienceLevel,
+        location: parsed.location,
+      },
+    })
+
+    return parsed
   }
 
   async getJobMatch(input: {

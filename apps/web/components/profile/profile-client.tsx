@@ -18,7 +18,7 @@ import {
 import { Input } from "@workspace/ui/components/input"
 import { Textarea } from "@workspace/ui/components/textarea"
 import { useRouter } from "next/navigation"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { SidebarLayout } from "@/components/sidebar-layout"
@@ -51,11 +51,17 @@ export function ProfileClient() {
   const router = useRouter()
   const { data: session, isPending } = useSession()
   const [profile, setProfile] = useState<ProfileResponse | null>(null)
+
+  // Form state
+  const [name, setName] = useState("")
+  const [location, setLocation] = useState("")
+  const [skills, setSkills] = useState("")
+  const [experienceLevel, setExperienceLevel] = useState("")
+  const [resumeUrl, setResumeUrl] = useState("")
+
+  // Resume parsing
   const [resumeText, setResumeText] = useState("")
-  const [parsedResume, setParsedResume] = useState<ResumeParseResponse | null>(
-    null,
-  )
-  const [isParsingResume, setIsParsingResume] = useState(false)
+  const [isParsing, setIsParsing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -75,31 +81,19 @@ export function ProfileClient() {
       )
       const data = (await res.json()) as ProfileResponse
       setProfile(data)
+
+      // Populate form from loaded profile
+      setName(data.user?.name ?? session.user.name ?? "")
+      setLocation(data.profile?.location ?? "")
+      setSkills(data.profile?.skills ?? "")
+      setExperienceLevel(data.profile?.experienceLevel ?? "")
+      setResumeUrl(data.profile?.resumeUrl ?? "")
     }
 
     void loadProfile()
   }, [session?.user?.email])
 
-  const profileFormKey = useMemo(() => {
-    return JSON.stringify({
-      name: profile?.user?.name ?? session?.user?.name ?? "",
-      location: profile?.profile?.location ?? "",
-      skills: profile?.profile?.skills ?? "",
-      experienceLevel: profile?.profile?.experienceLevel ?? "",
-      resumeUrl: profile?.profile?.resumeUrl ?? "",
-    })
-  }, [profile, session?.user?.name])
-
-  async function refreshProfile(email: string) {
-    const res = await fetch(
-      `${API_URL}/users/profile?email=${encodeURIComponent(email)}`,
-      { cache: "no-store" },
-    )
-    const data = (await res.json()) as ProfileResponse
-    setProfile(data)
-  }
-
-  async function handleProfileSubmit(formData: FormData) {
+  async function handleSaveProfile() {
     if (!session?.user?.email) return
 
     setError(null)
@@ -111,20 +105,18 @@ export function ProfileClient() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           email: session.user.email,
-          name: String(formData.get("name") ?? "").trim(),
-          location: String(formData.get("location") ?? "").trim(),
-          skills: String(formData.get("skills") ?? "").trim(),
-          experienceLevel:
-            String(formData.get("experienceLevel") ?? "").trim() || null,
-          resumeUrl: String(formData.get("resumeUrl") ?? "").trim(),
+          name: name.trim(),
+          location: location.trim(),
+          skills: skills.trim(),
+          experienceLevel: experienceLevel.trim() || null,
+          resumeUrl: resumeUrl.trim(),
         }),
       })
 
-      if (!res.ok) throw new Error("Unable to save profile")
+      if (!res.ok) throw new Error("Save failed")
 
-      await refreshProfile(session.user.email)
       toast("Profile saved", {
-        description: "Your details are ready for job matching.",
+        description: "Your profile was updated. Match scores will reflect the changes.",
       })
     } catch {
       setError("Could not save your profile right now.")
@@ -133,7 +125,7 @@ export function ProfileClient() {
     }
   }
 
-  async function handleParseResume() {
+  async function handleParseAndAutoFill() {
     if (!resumeText.trim()) {
       toast("Paste resume text first", {
         description: "Add resume content to extract skills and experience.",
@@ -141,7 +133,7 @@ export function ProfileClient() {
       return
     }
 
-    setIsParsingResume(true)
+    setIsParsing(true)
 
     try {
       const res = await fetch(`${API_URL}/ai/parse-resume`, {
@@ -150,59 +142,24 @@ export function ProfileClient() {
         body: JSON.stringify({ resumeText }),
       })
 
-      if (!res.ok) throw new Error("Could not parse resume")
+      if (!res.ok) throw new Error("Parse failed")
 
       const data = (await res.json()) as ResumeParseResponse
-      setParsedResume(data)
+
+      // Auto-fill form fields (only overwrite if parse found something)
+      if (data.location) setLocation(data.location)
+      if (data.skills.length > 0) setSkills(data.skills.join(", "))
+      if (data.experienceLevel) setExperienceLevel(data.experienceLevel)
+
       toast("Resume parsed", {
-        description: "Review the extracted details before applying.",
+        description: `Found ${data.skills.length} skills${data.experienceLevel ? `, ${data.experienceLevel.toLowerCase()} level` : ""}. Review and save.`,
       })
     } catch {
       toast("Could not parse resume", {
-        description: "Please try again with more detail.",
+        description: "Try pasting more detailed resume text.",
       })
     } finally {
-      setIsParsingResume(false)
-    }
-  }
-
-  async function handleApplyParsedResume() {
-    if (!session?.user?.email || !parsedResume) return
-
-    setIsSaving(true)
-    setError(null)
-
-    try {
-      const res = await fetch(`${API_URL}/users/profile`, {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          email: session.user.email,
-          name: profile?.user?.name ?? session.user.name ?? "",
-          location:
-            parsedResume.location ?? profile?.profile?.location ?? "",
-          skills:
-            parsedResume.skills.join(", ") ||
-            profile?.profile?.skills ||
-            "",
-          experienceLevel:
-            parsedResume.experienceLevel ??
-            profile?.profile?.experienceLevel ??
-            null,
-          resumeUrl: profile?.profile?.resumeUrl ?? "",
-        }),
-      })
-
-      if (!res.ok) throw new Error("Could not apply parsed resume")
-
-      await refreshProfile(session.user.email)
-      toast("Resume insights applied", {
-        description: "Your profile was updated from the parsed resume.",
-      })
-    } catch {
-      setError("Could not apply parsed resume right now.")
-    } finally {
-      setIsSaving(false)
+      setIsParsing(false)
     }
   }
 
@@ -219,9 +176,7 @@ export function ProfileClient() {
   }
 
   const isProfileComplete = Boolean(
-    profile?.profile?.location &&
-      profile?.profile?.skills &&
-      profile?.profile?.experienceLevel,
+    skills.trim() && experienceLevel,
   )
 
   return (
@@ -249,176 +204,121 @@ export function ProfileClient() {
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          {/* Profile form */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="font-mono text-xs font-semibold tracking-widest uppercase">
-                Details
-              </CardTitle>
-              <CardDescription>
-                Your skills and experience level drive match scoring across all
-                jobs.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form
-                action={handleProfileSubmit}
-                className="flex flex-col gap-6"
-                key={profileFormKey}
+        {/* Resume parser — top, prominent */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-mono text-xs font-semibold tracking-widest uppercase">
+              Paste your resume
+            </CardTitle>
+            <CardDescription>
+              Paste your resume text below and we will extract skills,
+              experience level, and location automatically.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <Textarea
+              placeholder="Paste your resume text here..."
+              value={resumeText}
+              onChange={(e) => setResumeText(e.target.value)}
+              className="min-h-[160px]"
+            />
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button
+                disabled={isParsing}
+                onClick={() => void handleParseAndAutoFill()}
+                className="bg-[var(--amber)] text-[var(--amber-foreground)] hover:bg-[var(--amber)]/80"
               >
-                <FieldGroup>
-                  <Field>
-                    <FieldLabel htmlFor="name">Full name</FieldLabel>
-                    <Input
-                      id="name"
-                      name="name"
-                      defaultValue={
-                        profile?.user?.name ?? session.user.name ?? ""
-                      }
-                      required
-                    />
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="location">Location</FieldLabel>
-                    <Input
-                      id="location"
-                      name="location"
-                      placeholder="Manila, Philippines"
-                      defaultValue={profile?.profile?.location ?? ""}
-                    />
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="skills">Skills</FieldLabel>
-                    <Input
-                      id="skills"
-                      name="skills"
-                      placeholder="React, TypeScript, NestJS"
-                      defaultValue={profile?.profile?.skills ?? ""}
-                    />
-                    <FieldDescription>
-                      Separate skills with commas for now.
-                    </FieldDescription>
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="experienceLevel">
-                      Experience level
-                    </FieldLabel>
-                    <Input
-                      id="experienceLevel"
-                      name="experienceLevel"
-                      placeholder="JUNIOR"
-                      defaultValue={
-                        profile?.profile?.experienceLevel ?? ""
-                      }
-                    />
-                    <FieldDescription>
-                      Use INTERN, JUNIOR, MID, or SENIOR.
-                    </FieldDescription>
-                  </Field>
-                  <Field>
-                    <FieldLabel htmlFor="resumeUrl">Resume URL</FieldLabel>
-                    <Input
-                      id="resumeUrl"
-                      name="resumeUrl"
-                      placeholder="https://example.com/resume.pdf"
-                      defaultValue={profile?.profile?.resumeUrl ?? ""}
-                    />
-                  </Field>
-                </FieldGroup>
+                {isParsing ? "Parsing..." : "Parse & auto-fill"}
+              </Button>
+              {skills.trim() || experienceLevel ? (
+                <span className="flex items-center text-xs text-muted-foreground">
+                  Fields below were auto-filled. Review and save.
+                </span>
+              ) : null}
+            </div>
+          </CardContent>
+        </Card>
 
-                {error ? <FieldError>{error}</FieldError> : null}
+        {/* Profile form */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-mono text-xs font-semibold tracking-widest uppercase">
+              Details
+            </CardTitle>
+            <CardDescription>
+              Edit the fields below or use the resume parser above to fill them
+              automatically.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-6">
+              <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="name">Full name</FieldLabel>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="location">Location</FieldLabel>
+                  <Input
+                    id="location"
+                    placeholder="Manila, Philippines"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                  />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="skills">Skills</FieldLabel>
+                  <Input
+                    id="skills"
+                    placeholder="React, TypeScript, NestJS"
+                    value={skills}
+                    onChange={(e) => setSkills(e.target.value)}
+                  />
+                  <FieldDescription>
+                    Separate skills with commas.
+                  </FieldDescription>
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="experienceLevel">
+                    Experience level
+                  </FieldLabel>
+                  <Input
+                    id="experienceLevel"
+                    placeholder="INTERN, JUNIOR, MID, SENIOR"
+                    value={experienceLevel}
+                    onChange={(e) => setExperienceLevel(e.target.value.toUpperCase())}
+                  />
+                  <FieldDescription>
+                    Use INTERN, JUNIOR, MID, or SENIOR.
+                  </FieldDescription>
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="resumeUrl">Resume URL</FieldLabel>
+                  <Input
+                    id="resumeUrl"
+                    placeholder="https://example.com/resume.pdf"
+                    value={resumeUrl}
+                    onChange={(e) => setResumeUrl(e.target.value)}
+                  />
+                </Field>
+              </FieldGroup>
 
-                <Button
-                  disabled={isSaving}
-                  type="submit"
-                  className="bg-[var(--amber)] text-[var(--amber-foreground)] hover:bg-[var(--amber)]/80"
-                >
-                  {isSaving ? "Saving profile..." : "Save profile"}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+              {error ? <FieldError>{error}</FieldError> : null}
 
-          {/* Resume parsing */}
-          <div className="flex flex-col gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-mono text-xs font-semibold tracking-widest uppercase">
-                  Resume parsing
-                </CardTitle>
-                <CardDescription>
-                  Paste resume text to extract skills, experience level, and
-                  location into your profile.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <FieldGroup>
-                  <Field>
-                    <FieldLabel htmlFor="resumeText">Resume text</FieldLabel>
-                    <Textarea
-                      id="resumeText"
-                      placeholder="Paste your resume text here..."
-                      value={resumeText}
-                      onChange={(event) => setResumeText(event.target.value)}
-                    />
-                  </Field>
-                </FieldGroup>
-                <Button
-                  disabled={isParsingResume}
-                  onClick={() => void handleParseResume()}
-                  type="button"
-                  className="bg-[var(--amber)] text-[var(--amber-foreground)] hover:bg-[var(--amber)]/80"
-                >
-                  {isParsingResume ? "Parsing resume..." : "Parse resume"}
-                </Button>
-
-                {parsedResume ? (
-                  <div className="border border-border bg-secondary/30 p-4">
-                    <div className="flex flex-col gap-3">
-                      <div>
-                        <p className="font-mono text-xs font-semibold tracking-widest uppercase text-[var(--amber)]">
-                          Detected location
-                        </p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {parsedResume.location ??
-                            "No location detected yet"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="font-mono text-xs font-semibold tracking-widest uppercase text-[var(--amber)]">
-                          Detected experience level
-                        </p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {parsedResume.experienceLevel ??
-                            "No experience level detected yet"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="font-mono text-xs font-semibold tracking-widest uppercase text-[var(--amber)]">
-                          Detected skills
-                        </p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {parsedResume.skills.length > 0
-                            ? parsedResume.skills.join(", ")
-                            : "No known skills detected yet"}
-                        </p>
-                      </div>
-                      <Button
-                        disabled={isSaving}
-                        onClick={() => void handleApplyParsedResume()}
-                        type="button"
-                        variant="outline"
-                      >
-                        Apply to profile
-                      </Button>
-                    </div>
-                  </div>
-                ) : null}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+              <Button
+                disabled={isSaving}
+                onClick={() => void handleSaveProfile()}
+                className="bg-[var(--amber)] text-[var(--amber-foreground)] hover:bg-[var(--amber)]/80"
+              >
+                {isSaving ? "Saving..." : "Save profile"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </section>
     </SidebarLayout>
   )

@@ -66,4 +66,23 @@ export class AiController {
 
     return this.aiService.parseResumeText(body.resumeText)
   }
+
+  @Post("parse-resume-and-update")
+  async parseResumeAndUpdate(
+    @Body() body: { email?: string; resumeText?: string },
+  ) {
+    if (!body.email || !body.resumeText?.trim()) {
+      return {
+        summary: "",
+        location: null,
+        skills: [],
+        experienceLevel: null,
+      }
+    }
+
+    return this.aiService.parseResumeAndUpdateProfile({
+      email: body.email,
+      resumeText: body.resumeText,
+    })
+  }
 }
