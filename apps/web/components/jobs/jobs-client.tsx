@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@workspace/ui/components/button"
+import { Skeleton } from "@workspace/ui/components/skeleton"
 import {
   Card,
   CardContent,
@@ -322,9 +323,18 @@ export function JobsClient() {
   if (isPending || !session?.user) {
     return (
       <SidebarLayout current="jobs">
-        <div className="flex flex-1 items-center justify-center">
-          <p className="text-sm text-muted-foreground">Loading jobs...</p>
-        </div>
+        <section className="mx-auto flex w-full max-w-6xl flex-col gap-8">
+          <div className="flex flex-col gap-3">
+            <Skeleton className="h-9 w-64" />
+            <Skeleton className="h-5 w-96" />
+          </div>
+          <Skeleton className="h-48" />
+          <div className="grid gap-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-40" />
+            ))}
+          </div>
+        </section>
       </SidebarLayout>
     )
   }

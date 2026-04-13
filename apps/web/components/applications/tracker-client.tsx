@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@workspace/ui/components/button"
+import { Skeleton } from "@workspace/ui/components/skeleton"
 import {
   Card,
   CardContent,
@@ -220,9 +221,17 @@ export function TrackerClient() {
   if (isPending || !session?.user) {
     return (
       <SidebarLayout current="tracker">
-        <div className="flex flex-1 items-center justify-center">
-          <p className="text-sm text-muted-foreground">Loading tracker...</p>
-        </div>
+        <section className="mx-auto flex w-full max-w-6xl flex-col gap-8">
+          <div className="flex flex-col gap-3">
+            <Skeleton className="h-9 w-64" />
+            <Skeleton className="h-5 w-96" />
+          </div>
+          <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-64" />
+            ))}
+          </div>
+        </section>
       </SidebarLayout>
     )
   }

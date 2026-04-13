@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@workspace/ui/components/button"
+import { Skeleton } from "@workspace/ui/components/skeleton"
 import {
   Card,
   CardContent,
@@ -127,11 +128,21 @@ export function DashboardClient() {
   if (isPending || !session?.user) {
     return (
       <SidebarLayout current="dashboard">
-        <div className="flex flex-1 items-center justify-center">
-          <p className="text-sm text-muted-foreground">
-            Loading your workspace...
-          </p>
-        </div>
+        <section className="mx-auto flex w-full max-w-6xl flex-col gap-8">
+          <div className="flex flex-col gap-3">
+            <Skeleton className="h-9 w-64" />
+            <Skeleton className="h-5 w-96" />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-24" />
+            ))}
+          </div>
+          <div className="grid gap-4 sm:grid-cols-[1.05fr_0.95fr]">
+            <Skeleton className="h-64" />
+            <Skeleton className="h-64" />
+          </div>
+        </section>
       </SidebarLayout>
     )
   }
