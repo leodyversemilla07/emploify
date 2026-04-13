@@ -119,11 +119,6 @@ export function DashboardClient() {
     void loadProfile()
   }, [session?.user?.email])
 
-  const isProfileComplete = Boolean(
-    profile?.profile?.location &&
-      profile?.profile?.skills &&
-      profile?.profile?.experienceLevel,
-  )
 
   if (isPending || !session?.user) {
     return (
@@ -133,8 +128,8 @@ export function DashboardClient() {
             <Skeleton className="h-9 w-64" />
             <Skeleton className="h-5 w-96" />
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            {Array.from({ length: 5 }).map((_, i) => (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} className="h-24" />
             ))}
           </div>
@@ -173,7 +168,7 @@ export function DashboardClient() {
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="border border-border">
             <CardHeader>
               <CardDescription className="font-mono text-xs font-semibold tracking-widest uppercase">
@@ -216,16 +211,6 @@ export function DashboardClient() {
               </CardTitle>
             </CardHeader>
           </Card>
-          <Card className="border border-border">
-            <CardHeader>
-              <CardDescription className="font-mono text-xs font-semibold tracking-widest uppercase">
-                Profile status
-              </CardDescription>
-              <CardTitle className="text-2xl font-semibold font-mono">
-                {isProfileComplete ? "Ready" : "Incomplete"}
-              </CardTitle>
-            </CardHeader>
-          </Card>
         </div>
 
         {topMatches.length > 0 ? (
@@ -264,49 +249,8 @@ export function DashboardClient() {
           </Card>
         ) : null}
 
-        <div className="grid gap-4 sm:grid-cols-[1.05fr_0.95fr]">
-          {/* Profile summary + link */}
+        <div className="flex flex-col gap-6">
           <Card>
-            <CardHeader>
-              <CardTitle className="font-mono text-xs font-semibold tracking-widest uppercase">
-                Profile
-              </CardTitle>
-              <CardDescription>
-                Your skills and experience level power job matching and
-                recommendations.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <div className="flex flex-col gap-3">
-                <div className="border border-border bg-secondary/30 p-4">
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                      <p className="font-mono text-xs font-semibold tracking-widest uppercase text-[var(--amber)]">
-                        Status
-                      </p>
-                      <p className="text-sm font-medium">
-                        {isProfileComplete ? "Ready" : "Incomplete"}
-                      </p>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {isProfileComplete
-                        ? "Your profile is set. Update skills or parse a new resume anytime."
-                        : "Complete your profile to unlock match scoring."}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <Button
-                asChild
-                className="bg-[var(--amber)] text-[var(--amber-foreground)] hover:bg-[var(--amber)]/80"
-              >
-                <Link href="/profile">Edit profile</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <div className="flex flex-col gap-6">
-            <Card>
               <CardHeader>
                 <CardTitle className="font-mono text-xs font-semibold tracking-widest uppercase">
                   Analytics funnel
@@ -454,7 +398,6 @@ export function DashboardClient() {
               </CardContent>
             </Card>
           </div>
-        </div>
       </section>
     </SidebarLayout>
   )
