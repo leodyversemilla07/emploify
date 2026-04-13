@@ -134,7 +134,7 @@ export function SidebarLayout({
           </span>
         </header>
 
-        <div className="flex flex-1 flex-col">
+        <div className="flex flex-1 flex-col px-6 py-8">
           {children}
         </div>
       </SidebarInset>

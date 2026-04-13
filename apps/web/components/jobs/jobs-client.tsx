@@ -295,7 +295,7 @@ export function JobsClient() {
   if (isPending || !session?.user) {
     return (
       <SidebarLayout current="jobs">
-        <div className="flex flex-1 items-center justify-center px-6 py-10">
+        <div className="flex flex-1 items-center justify-center">
           <p className="text-sm text-muted-foreground">Loading jobs...</p>
         </div>
       </SidebarLayout>
@@ -304,7 +304,7 @@ export function JobsClient() {
 
   return (
     <SidebarLayout current="jobs">
-      <section className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-10">
+      <section className="mx-auto flex w-full max-w-6xl flex-col gap-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-3">
             <h1 className="text-3xl font-medium tracking-tight">
