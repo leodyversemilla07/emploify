@@ -62,6 +62,15 @@ type RecommendationsResponse = {
   }>
 }
 
+type TopMatch = {
+  id: string
+  title: string
+  company: string
+  location: string | null
+  remote: boolean
+  matchScore: number | null
+}
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"
 
 export function DashboardClient() {
@@ -70,12 +79,13 @@ export function DashboardClient() {
   const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null)
   const [recommendations, setRecommendations] =
     useState<RecommendationsResponse | null>(null)
+  const [topMatches, setTopMatches] = useState<TopMatch[]>([])
 
   useEffect(() => {
     async function loadProfile() {
       if (!session?.user?.email) return
 
-      const [profileRes, analyticsRes, recommendationsRes] = await Promise.all([
+      const [profileRes, analyticsRes, recommendationsRes, jobsRes] = await Promise.all([
         fetch(
           `${API_URL}/users/profile?email=${encodeURIComponent(session.user.email)}`,
           { cache: "no-store" }
@@ -88,15 +98,21 @@ export function DashboardClient() {
           `${API_URL}/ai/recommendations?email=${encodeURIComponent(session.user.email)}`,
           { cache: "no-store" }
         ),
+        fetch(
+          `${API_URL}/jobs?email=${encodeURIComponent(session.user.email)}`,
+          { cache: "no-store" }
+        ),
       ])
 
       const profileData = (await profileRes.json()) as ProfileResponse
       const analyticsData = (await analyticsRes.json()) as AnalyticsResponse
       const recommendationsData =
         (await recommendationsRes.json()) as RecommendationsResponse
+      const jobsData = (await jobsRes.json()) as TopMatch[]
       setProfile(profileData)
       setAnalytics(analyticsData)
       setRecommendations(recommendationsData)
+      setTopMatches(jobsData.filter((j) => j.matchScore !== null).slice(0, 3))
     }
 
     void loadProfile()
@@ -200,6 +216,42 @@ export function DashboardClient() {
             </CardHeader>
           </Card>
         </div>
+
+        {topMatches.length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-mono text-xs font-semibold tracking-widest uppercase">
+                Top matches
+              </CardTitle>
+              <CardDescription>
+                Jobs that best fit your profile, sorted by match score.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              {topMatches.map((job) => (
+                <div
+                  key={job.id}
+                  className="flex items-center justify-between gap-3 rounded-lg border bg-background p-4"
+                >
+                  <div className="flex flex-col gap-1">
+                    <p className="text-sm font-medium">{job.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {job.company}
+                      {job.location ? ` \u00b7 ${job.location}` : ""}
+                      {job.remote ? " \u00b7 Remote" : ""}
+                    </p>
+                  </div>
+                  <span className="shrink-0 font-mono text-sm font-semibold text-[var(--amber)]">
+                    {job.matchScore}%
+                  </span>
+                </div>
+              ))}
+              <Button asChild variant="outline" size="sm">
+                <Link href="/jobs">Browse all jobs</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
 
         <div className="grid gap-4 sm:grid-cols-[1.05fr_0.95fr]">
           {/* Profile summary + link */}
