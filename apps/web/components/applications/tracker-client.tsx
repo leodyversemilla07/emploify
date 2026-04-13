@@ -341,6 +341,12 @@ export function TrackerClient() {
                                 application.updatedAt
                               ).toLocaleDateString()}
                             </p>
+                            {application.status === "APPLIED" &&
+                            Date.now() - new Date(application.updatedAt).getTime() > 7 * 24 * 60 * 60 * 1000 ? (
+                              <p className="font-mono text-[0.65rem] font-semibold tracking-widest text-[var(--amber)] uppercase">
+                                Follow up
+                              </p>
+                            ) : null}
                           </div>
                           <Separator className="my-4" />
                           <div className="flex flex-col gap-3">
