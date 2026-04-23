@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Post, Query, Req } from "@nestjs/common"
-import type { Request as ExpressRequest } from "express"
+import { Body, Controller, Get, Post, Query, UseGuards } from "@nestjs/common"
 
-import { requireSession } from "../auth/auth-session.js"
+import { AuthGuard } from "../auth/auth.guard.js"
+import { CurrentUser } from "../auth/current-user.decorator.js"
+import type { SessionUser } from "../auth/auth.types.js"
 // biome-ignore lint/style/useImportType: NestJS dependency injection requires a runtime class reference.
 import { AiService } from "./ai.service.js"
 
@@ -10,8 +11,9 @@ export class AiController {
   constructor(private readonly aiService: AiService) {}
 
   @Get("match")
+  @UseGuards(AuthGuard)
   async getJobMatch(
-    @Req() req: ExpressRequest,
+    @CurrentUser() currentUser: SessionUser,
     @Query("jobId") jobId?: string
   ) {
     if (!jobId) {
@@ -24,19 +26,19 @@ export class AiController {
       }
     }
 
-    const session = await requireSession(req)
-    return this.aiService.getJobMatch({ email: session.user.email, jobId })
+    return this.aiService.getJobMatch({ email: currentUser.email, jobId })
   }
 
   @Get("recommendations")
-  async getRecommendations(@Req() req: ExpressRequest) {
-    const session = await requireSession(req)
-    return this.aiService.getRecommendations(session.user.email)
+  @UseGuards(AuthGuard)
+  async getRecommendations(@CurrentUser() currentUser: SessionUser) {
+    return this.aiService.getRecommendations(currentUser.email)
   }
 
   @Get("match/explain")
+  @UseGuards(AuthGuard)
   async getJobMatchExplanation(
-    @Req() req: ExpressRequest,
+    @CurrentUser() currentUser: SessionUser,
     @Query("jobId") jobId?: string
   ) {
     if (!jobId) {
@@ -47,9 +49,8 @@ export class AiController {
       }
     }
 
-    const session = await requireSession(req)
     return this.aiService.getJobMatchExplanation({
-      email: session.user.email,
+      email: currentUser.email,
       jobId,
     })
   }
@@ -69,8 +70,9 @@ export class AiController {
   }
 
   @Post("parse-resume-and-update")
+  @UseGuards(AuthGuard)
   async parseResumeAndUpdate(
-    @Req() req: ExpressRequest,
+    @CurrentUser() currentUser: SessionUser,
     @Body() body: { resumeText?: string },
   ) {
     if (!body.resumeText?.trim()) {
@@ -82,10 +84,8 @@ export class AiController {
       }
     }
 
-    const session = await requireSession(req)
-
     return this.aiService.parseResumeAndUpdateProfile({
-      email: session.user.email,
+      email: currentUser.email,
       resumeText: body.resumeText,
     })
   }

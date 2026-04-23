@@ -6,29 +6,7 @@ import {
 import type { Request as ExpressRequest } from "express"
 
 import { auth } from "../lib/auth.js"
-
-type SessionUser = {
-  id: string
-  email: string
-  name?: string | null
-  image?: string | null
-}
-
-type AuthSession = {
-  session?: {
-    id: string
-    expiresAt: string | Date
-  } | null
-  user?: SessionUser | null
-} | null
-
-type AuthenticatedSession = {
-  session?: {
-    id: string
-    expiresAt: string | Date
-  } | null
-  user: SessionUser
-}
+import type { AuthSession, AuthenticatedSession } from "./auth.types.js"
 
 function getBaseURL() {
   return process.env.BETTER_AUTH_URL ?? `http://localhost:${process.env.PORT ?? 4000}`
