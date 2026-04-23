@@ -46,6 +46,12 @@ type ResumeParseResponse = {
   experienceLevel: "INTERN" | "JUNIOR" | "MID" | "SENIOR" | null
 }
 
+type ResumeUploadResponse = {
+  resumeUrl: string
+  parseStatus: "parsed" | "uploaded"
+  parsedProfile: ResumeParseResponse | null
+}
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"
 
 export function ProfileClient() {
@@ -62,7 +68,9 @@ export function ProfileClient() {
 
   // Resume parsing
   const [resumeText, setResumeText] = useState("")
+  const [resumeFile, setResumeFile] = useState<File | null>(null)
   const [isParsing, setIsParsing] = useState(false)
+  const [isUploadingResume, setIsUploadingResume] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -110,7 +118,6 @@ export function ProfileClient() {
           location: location.trim(),
           skills: skills.trim(),
           experienceLevel: experienceLevel.trim() || null,
-          resumeUrl: resumeUrl.trim(),
         }),
       })
 
@@ -123,6 +130,54 @@ export function ProfileClient() {
       setError("Could not save your profile right now.")
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  async function handleUploadResume() {
+    if (!resumeFile) {
+      toast("Choose a resume first", {
+        description: "Upload a TXT, PDF, DOC, or DOCX file.",
+      })
+      return
+    }
+
+    setIsUploadingResume(true)
+
+    try {
+      const formData = new FormData()
+      formData.set("file", resumeFile)
+
+      const res = await fetch(`${API_URL}/users/profile/resume`, {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      })
+
+      if (!res.ok) throw new Error("Upload failed")
+
+      const data = (await res.json()) as ResumeUploadResponse
+      setResumeUrl(data.resumeUrl)
+
+      if (data.parsedProfile?.location) setLocation(data.parsedProfile.location)
+      if (data.parsedProfile?.skills?.length) {
+        setSkills(data.parsedProfile.skills.join(", "))
+      }
+      if (data.parsedProfile?.experienceLevel) {
+        setExperienceLevel(data.parsedProfile.experienceLevel)
+      }
+
+      toast("Resume uploaded", {
+        description:
+          data.parseStatus === "parsed"
+            ? "Your resume was uploaded and parsed. Review the profile fields below."
+            : "Your resume was uploaded. Automatic parsing currently works for text files.",
+      })
+    } catch {
+      toast("Could not upload resume", {
+        description: "Please try again with a supported file.",
+      })
+    } finally {
+      setIsUploadingResume(false)
     }
   }
 
@@ -225,6 +280,46 @@ export function ProfileClient() {
           </div>
         </div>
 
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-mono text-xs font-semibold tracking-widest uppercase">
+              Upload your resume
+            </CardTitle>
+            <CardDescription>
+              Upload a resume file to attach it to your profile. Text files are
+              parsed automatically; PDF and Word uploads are stored for now.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <Input
+              accept=".txt,.pdf,.doc,.docx"
+              type="file"
+              onChange={(event) =>
+                setResumeFile(event.target.files?.[0] ?? null)
+              }
+            />
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <Button
+                disabled={isUploadingResume}
+                onClick={() => void handleUploadResume()}
+                className="bg-[var(--amber)] text-[var(--amber-foreground)] hover:bg-[var(--amber)]/80"
+              >
+                {isUploadingResume ? "Uploading..." : "Upload resume"}
+              </Button>
+              {resumeUrl ? (
+                <a
+                  href={resumeUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-[var(--amber)] underline underline-offset-4"
+                >
+                  View current resume
+                </a>
+              ) : null}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Resume parser — top, prominent */}
         <Card>
           <CardHeader>
@@ -318,13 +413,16 @@ export function ProfileClient() {
                   </FieldDescription>
                 </Field>
                 <Field>
-                  <FieldLabel htmlFor="resumeUrl">Resume URL</FieldLabel>
+                  <FieldLabel htmlFor="resumeUrl">Resume</FieldLabel>
                   <Input
                     id="resumeUrl"
-                    placeholder="https://example.com/resume.pdf"
+                    readOnly
                     value={resumeUrl}
-                    onChange={(e) => setResumeUrl(e.target.value)}
+                    placeholder="Upload a resume to attach it to your profile"
                   />
+                  <FieldDescription>
+                    Resume attachments are managed through the upload flow above.
+                  </FieldDescription>
                 </Field>
               </FieldGroup>
 

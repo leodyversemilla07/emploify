@@ -1,6 +1,8 @@
 import { Injectable } from "@nestjs/common"
 import type { ExperienceLevel } from "@prisma/client"
 
+import type { ResumeParseResult } from "../ai/ai.service.js"
+
 // biome-ignore lint/style/useImportType: NestJS dependency injection requires a runtime class reference.
 import { PrismaService } from "../prisma/prisma.service.js"
 
@@ -57,6 +59,22 @@ export class UserService {
         experienceLevel: input.experienceLevel,
         resumeUrl: input.resumeUrl,
       },
+    })
+  }
+
+  async updateResumeProfile(input: {
+    email: string
+    resumeUrl: string
+    parsed?: ResumeParseResult | null
+  }) {
+    return this.upsertProfile({
+      email: input.email,
+      resumeUrl: input.resumeUrl,
+      location: input.parsed?.location ?? undefined,
+      skills: input.parsed?.skills?.length
+        ? input.parsed.skills.join(", ")
+        : undefined,
+      experienceLevel: input.parsed?.experienceLevel ?? undefined,
     })
   }
 }

@@ -38,7 +38,7 @@ type MatchResult = {
   profileSkills: string[]
 }
 
-type ResumeParseResult = {
+export type ResumeParseResult = {
   summary: string
   location: string | null
   skills: string[]

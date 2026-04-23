@@ -28,8 +28,8 @@ export class ApplicationController {
     @Body() body: { applicationId: string; notes: string }
   ) {
     return this.applicationService.updateNotes({
-      email: currentUser.email,
       ...body,
+      email: currentUser.email,
     })
   }
 
@@ -42,8 +42,8 @@ export class ApplicationController {
     }
   ) {
     return this.applicationService.updateStatus({
-      email: currentUser.email,
       ...body,
+      email: currentUser.email,
     })
   }
 }

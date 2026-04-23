@@ -49,8 +49,8 @@ export class JobController {
     @Body() body: { jobId: string }
   ) {
     return this.jobService.saveJob({
-      email: user.email,
       ...body,
+      email: user.email,
     })
   }
 }
