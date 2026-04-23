@@ -173,10 +173,7 @@ Base URL: `http://localhost:4000`
   - `GET /ai/recommendations?email=...`
   - `POST /ai/parse-resume`
 
-## Deployment notes (Render)
-
-A `render.yaml` blueprint is included for separate web/api services.
-Set secrets and connection strings in the Render dashboard.
+## Deployment notes
 
 For production safety:
 - prefer `prisma migrate deploy` over `db push`,
