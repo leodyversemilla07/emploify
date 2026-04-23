@@ -28,7 +28,7 @@ import {
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
-import { signOut, useSession } from "@/lib/auth-client"
+import { useAuthActions } from "@/lib/auth"
 
 const navItems = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -39,9 +39,15 @@ const navItems = [
 function AppSidebar({ current }: { current?: string }) {
   const router = useRouter()
   const isMobile = useIsMobile()
+  const { signOut } = useAuthActions()
 
   async function handleSignOut() {
-    await signOut()
+    const result = await signOut()
+
+    if (result.error) {
+      return
+    }
+
     router.replace("/")
     router.refresh()
   }

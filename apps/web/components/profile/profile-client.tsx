@@ -23,7 +23,7 @@ import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { SidebarLayout } from "@/components/sidebar-layout"
-import { useSession } from "@/lib/auth-client"
+import { useSession } from "@/lib/auth"
 
 type ProfileResponse = {
   user?: {
@@ -50,7 +50,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"
 
 export function ProfileClient() {
   const router = useRouter()
-  const { data: session, isPending } = useSession()
+  const { data: session, error: sessionError, isPending } = useSession()
   const [profile, setProfile] = useState<ProfileResponse | null>(null)
 
   // Form state
@@ -67,19 +67,19 @@ export function ProfileClient() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isPending && !session?.user) {
+    if (!isPending && !sessionError && !session?.user) {
       router.replace("/login")
     }
-  }, [isPending, router, session])
+  }, [isPending, router, session, sessionError])
 
   useEffect(() => {
     async function loadProfile() {
       if (!session?.user?.email) return
 
-      const res = await fetch(
-        `${API_URL}/users/profile?email=${encodeURIComponent(session.user.email)}`,
-        { cache: "no-store" },
-      )
+      const res = await fetch(`${API_URL}/users/profile`, {
+        cache: "no-store",
+        credentials: "include",
+      })
       const data = (await res.json()) as ProfileResponse
       setProfile(data)
 
@@ -104,8 +104,8 @@ export function ProfileClient() {
       const res = await fetch(`${API_URL}/users/profile`, {
         method: "PUT",
         headers: { "content-type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
-          email: session.user.email,
           name: name.trim(),
           location: location.trim(),
           skills: skills.trim(),
@@ -139,6 +139,7 @@ export function ProfileClient() {
     try {
       const res = await fetch(`${API_URL}/ai/parse-resume`, {
         method: "POST",
+        credentials: "include",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ resumeText }),
       })
@@ -162,6 +163,22 @@ export function ProfileClient() {
     } finally {
       setIsParsing(false)
     }
+  }
+
+  if (sessionError) {
+    return (
+      <SidebarLayout current="profile">
+        <section className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+          <h1 className="text-2xl font-medium tracking-tight">
+            We couldn’t verify your session.
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Please retry in a moment. If the problem persists, check the API auth
+            service.
+          </p>
+        </section>
+      </SidebarLayout>
+    )
   }
 
   if (isPending || !session?.user) {

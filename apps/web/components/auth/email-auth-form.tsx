@@ -14,10 +14,11 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Spinner } from "@workspace/ui/components/spinner"
 import { useMemo, useState } from "react"
-import { signIn, signUp } from "@/lib/auth-client"
+import { useAuthActions } from "@/lib/auth"
 
 export function EmailAuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter()
+  const { signIn, signUp } = useAuthActions()
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [password, setPassword] = useState("")

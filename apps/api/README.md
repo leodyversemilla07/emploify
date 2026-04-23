@@ -32,6 +32,9 @@ Minimum required variables:
 - `BETTER_AUTH_URL`
 - `FRONTEND_URL`
 
+Admin-only actions:
+- `ADMIN_EMAILS` — comma-separated emails allowed to trigger protected admin routes like `POST /jobs/sync`
+
 Optional provider variables:
 - `GREENHOUSE_COMPANY_NAME`
 - `LEVER_COMPANY_HANDLE`
@@ -45,6 +48,7 @@ Optional provider variables:
 - `AZURE_OPENAI_ENDPOINT`
 - `AZURE_OPENAI_DEPLOYMENT`
 - `AZURE_OPENAI_API_KEY`
+- `ADMIN_EMAILS`
 
 ## Install + run
 

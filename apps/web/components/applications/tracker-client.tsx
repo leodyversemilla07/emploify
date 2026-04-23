@@ -18,7 +18,7 @@ import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
 import { SidebarLayout } from "@/components/sidebar-layout"
-import { useSession } from "@/lib/auth-client"
+import { useSession } from "@/lib/auth"
 
 type ApplicationStatus =
   | "SAVED"
@@ -70,7 +70,7 @@ const statusLabel: Record<ApplicationStatus, string> = {
 
 export function TrackerClient() {
   const router = useRouter()
-  const { data: session, isPending } = useSession()
+  const { data: session, error, isPending } = useSession()
   const [applications, setApplications] = useState<ApplicationItem[]>([])
   const [draftNotes, setDraftNotes] = useState<Record<string, string>>({})
   const [savingNotes, setSavingNotes] = useState<Record<string, boolean>>({})
@@ -82,20 +82,20 @@ export function TrackerClient() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    if (!isPending && !session?.user) {
+    if (!isPending && !error && !session?.user) {
       router.replace("/login")
     }
-  }, [isPending, router, session])
+  }, [error, isPending, router, session])
 
   useEffect(() => {
     async function loadApplications() {
       if (!session?.user?.email) return
 
       setIsLoading(true)
-      const res = await fetch(
-        `${API_URL}/applications?email=${encodeURIComponent(session.user.email)}`,
-        { cache: "no-store" }
-      )
+      const res = await fetch(`${API_URL}/applications`, {
+        cache: "no-store",
+        credentials: "include",
+      })
       const data = (await res.json()) as ApplicationItem[]
       setApplications(data)
       setDraftNotes(
@@ -129,8 +129,8 @@ export function TrackerClient() {
       headers: {
         "content-type": "application/json",
       },
+      credentials: "include",
       body: JSON.stringify({
-        email: session.user.email,
         applicationId,
         status,
       }),
@@ -166,8 +166,8 @@ export function TrackerClient() {
       headers: {
         "content-type": "application/json",
       },
+      credentials: "include",
       body: JSON.stringify({
-        email: session.user.email,
         applicationId,
         notes: draftNotes[applicationId] ?? "",
       }),
@@ -216,6 +216,22 @@ export function TrackerClient() {
     if (!application || application.status === targetStatus) return
 
     await updateStatus(draggedApplicationId, targetStatus)
+  }
+
+  if (error) {
+    return (
+      <SidebarLayout current="tracker">
+        <section className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+          <h1 className="text-2xl font-medium tracking-tight">
+            We couldn’t verify your session.
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Please retry in a moment. If the problem persists, check the API auth
+            service.
+          </p>
+        </section>
+      </SidebarLayout>
+    )
   }
 
   if (isPending || !session?.user) {

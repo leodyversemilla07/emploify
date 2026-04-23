@@ -4,6 +4,7 @@ import "@workspace/ui/globals.css"
 import { Toaster } from "@workspace/ui/components/sonner"
 import { TooltipProvider } from "@workspace/ui/components/tooltip"
 import { ThemeProvider } from "@/components/theme-provider"
+import { AuthProvider } from "@/lib/auth"
 
 const fontSans = Geist({
   subsets: ["latin"],
@@ -28,10 +29,12 @@ export default function RootLayout({
     >
       <body>
         <ThemeProvider>
-          <TooltipProvider delayDuration={0}>
-            {children}
-            <Toaster />
-          </TooltipProvider>
+          <AuthProvider>
+            <TooltipProvider delayDuration={0}>
+              {children}
+              <Toaster />
+            </TooltipProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -1,6 +1,8 @@
-import { Body, Controller, Get, Put, Query } from "@nestjs/common"
+import { Body, Controller, Get, Put, Req } from "@nestjs/common"
 import type { ApplicationStatus } from "@prisma/client"
+import type { Request as ExpressRequest } from "express"
 
+import { requireSession } from "../auth/auth-session.js"
 // biome-ignore lint/style/useImportType: NestJS dependency injection requires a runtime class reference.
 import { ApplicationService } from "./application.service.js"
 
@@ -9,47 +11,43 @@ export class ApplicationController {
   constructor(private readonly applicationService: ApplicationService) {}
 
   @Get()
-  async listApplications(@Query("email") email?: string) {
-    if (!email) {
-      return []
-    }
-
-    return this.applicationService.listApplications(email)
+  async listApplications(@Req() req: ExpressRequest) {
+    const session = await requireSession(req)
+    return this.applicationService.listApplications(session.user.email)
   }
 
   @Get("analytics")
-  async getAnalytics(@Query("email") email?: string) {
-    if (!email) {
-      return {
-        totalApplications: 0,
-        saved: 0,
-        applied: 0,
-        interview: 0,
-        offer: 0,
-        rejected: 0,
-        interviewRate: 0,
-        offerRate: 0,
-      }
-    }
-
-    return this.applicationService.getAnalytics(email)
+  async getAnalytics(@Req() req: ExpressRequest) {
+    const session = await requireSession(req)
+    return this.applicationService.getAnalytics(session.user.email)
   }
 
   @Put("notes")
   async updateNotes(
-    @Body() body: { email: string; applicationId: string; notes: string }
+    @Req() req: ExpressRequest,
+    @Body() body: { applicationId: string; notes: string }
   ) {
-    return this.applicationService.updateNotes(body)
+    const session = await requireSession(req)
+
+    return this.applicationService.updateNotes({
+      email: session.user.email,
+      ...body,
+    })
   }
 
   @Put("status")
   async updateStatus(
+    @Req() req: ExpressRequest,
     @Body() body: {
-      email: string
       applicationId: string
       status: ApplicationStatus
     }
   ) {
-    return this.applicationService.updateStatus(body)
+    const session = await requireSession(req)
+
+    return this.applicationService.updateStatus({
+      email: session.user.email,
+      ...body,
+    })
   }
 }

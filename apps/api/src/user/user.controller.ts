@@ -1,6 +1,8 @@
-import { Body, Controller, Get, Put, Query } from "@nestjs/common"
+import { Body, Controller, Get, Put, Req } from "@nestjs/common"
 import type { ExperienceLevel } from "@prisma/client"
+import type { Request as ExpressRequest } from "express"
 
+import { requireSession } from "../auth/auth-session.js"
 // biome-ignore lint/style/useImportType: NestJS dependency injection requires a runtime class reference.
 import { UserService } from "./user.service.js"
 
@@ -9,12 +11,9 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get("profile")
-  async getProfile(@Query("email") email?: string) {
-    if (!email) {
-      return { error: "Email is required" }
-    }
-
-    const user = await this.userService.getProfileByEmail(email)
+  async getProfile(@Req() req: ExpressRequest) {
+    const session = await requireSession(req)
+    const user = await this.userService.getProfileByEmail(session.user.email)
 
     if (!user) {
       return { error: "User not found" }
@@ -36,9 +35,9 @@ export class UserController {
 
   @Put("profile")
   async upsertProfile(
+    @Req() req: ExpressRequest,
     @Body()
     body: {
-      email: string
       name?: string
       location?: string
       skills?: string
@@ -46,6 +45,11 @@ export class UserController {
       resumeUrl?: string
     }
   ) {
-    return this.userService.upsertProfile(body)
+    const session = await requireSession(req)
+
+    return this.userService.upsertProfile({
+      email: session.user.email,
+      ...body,
+    })
   }
 }

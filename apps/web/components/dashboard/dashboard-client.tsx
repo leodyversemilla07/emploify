@@ -14,7 +14,7 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 
 import { SidebarLayout } from "@/components/sidebar-layout"
-import { useSession } from "@/lib/auth-client"
+import { useSession } from "@/lib/auth"
 
 type ProfileResponse = {
   user?: {
@@ -75,7 +75,7 @@ type TopMatch = {
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"
 
 export function DashboardClient() {
-  const { data: session, isPending } = useSession()
+  const { data: session, error, isPending } = useSession()
   const [profile, setProfile] = useState<ProfileResponse | null>(null)
   const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null)
   const [recommendations, setRecommendations] =
@@ -87,22 +87,22 @@ export function DashboardClient() {
       if (!session?.user?.email) return
 
       const [profileRes, analyticsRes, recommendationsRes, jobsRes] = await Promise.all([
-        fetch(
-          `${API_URL}/users/profile?email=${encodeURIComponent(session.user.email)}`,
-          { cache: "no-store" }
-        ),
-        fetch(
-          `${API_URL}/applications/analytics?email=${encodeURIComponent(session.user.email)}`,
-          { cache: "no-store" }
-        ),
-        fetch(
-          `${API_URL}/ai/recommendations?email=${encodeURIComponent(session.user.email)}`,
-          { cache: "no-store" }
-        ),
-        fetch(
-          `${API_URL}/jobs?email=${encodeURIComponent(session.user.email)}`,
-          { cache: "no-store" }
-        ),
+        fetch(`${API_URL}/users/profile`, {
+          cache: "no-store",
+          credentials: "include",
+        }),
+        fetch(`${API_URL}/applications/analytics`, {
+          cache: "no-store",
+          credentials: "include",
+        }),
+        fetch(`${API_URL}/ai/recommendations`, {
+          cache: "no-store",
+          credentials: "include",
+        }),
+        fetch(`${API_URL}/jobs`, {
+          cache: "no-store",
+          credentials: "include",
+        }),
       ])
 
       const profileData = (await profileRes.json()) as ProfileResponse
@@ -119,6 +119,22 @@ export function DashboardClient() {
     void loadProfile()
   }, [session?.user?.email])
 
+
+  if (error) {
+    return (
+      <SidebarLayout current="dashboard">
+        <section className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+          <h1 className="text-2xl font-medium tracking-tight">
+            We couldn’t verify your session.
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Please retry in a moment. If the problem persists, check the API auth
+            service.
+          </p>
+        </section>
+      </SidebarLayout>
+    )
+  }
 
   if (isPending || !session?.user) {
     return (

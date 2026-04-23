@@ -23,7 +23,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
 import { SidebarLayout } from "@/components/sidebar-layout"
-import { useSession } from "@/lib/auth-client"
+import { useSession } from "@/lib/auth"
 
 type JobItem = {
   id: string
@@ -103,7 +103,7 @@ function JobDescription({ text }: { text: string }) {
 
 export function JobsClient() {
   const router = useRouter()
-  const { data: session, isPending } = useSession()
+  const { data: session, error, isPending } = useSession()
   const [jobs, setJobs] = useState<JobItem[]>([])
   const [matches, setMatches] = useState<Record<string, MatchInsight>>({})
   const [loadingMatches, setLoadingMatches] = useState<Record<string, boolean>>(
@@ -128,6 +128,7 @@ export function JobsClient() {
   const loadSyncStatus = useCallback(async () => {
     const res = await fetch(`${API_URL}/jobs/sync/status`, {
       cache: "no-store",
+      credentials: "include",
     })
     const data = (await res.json()) as { lastRun: SyncRun | null }
     setLastRun(data.lastRun)
@@ -142,9 +143,7 @@ export function JobsClient() {
     if (!session?.user?.email) return
 
     setIsLoading(true)
-    const query = new URLSearchParams({
-      email: session.user.email,
-    })
+    const query = new URLSearchParams()
 
     if (search) query.set("search", search)
     if (location) query.set("location", location)
@@ -154,6 +153,7 @@ export function JobsClient() {
 
     const res = await fetch(`${API_URL}/jobs?${query.toString()}`, {
       cache: "no-store",
+      credentials: "include",
     })
     const data = (await res.json()) as JobItem[]
     setJobs(data)
@@ -168,10 +168,10 @@ export function JobsClient() {
   ])
 
   useEffect(() => {
-    if (!isPending && !session?.user) {
+    if (!isPending && !error && !session?.user) {
       router.replace("/login")
     }
-  }, [isPending, router, session])
+  }, [error, isPending, router, session])
 
   useEffect(() => {
     void loadJobs()
@@ -190,6 +190,7 @@ export function JobsClient() {
     try {
       const res = await fetch(`${API_URL}/jobs/sync`, {
         method: "POST",
+        credentials: "include",
       })
 
       if (!res.ok) {
@@ -232,11 +233,11 @@ export function JobsClient() {
 
     const res = await fetch(`${API_URL}/jobs/save`, {
       method: "POST",
+      credentials: "include",
       headers: {
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        email: session.user.email,
         jobId,
       }),
     })
@@ -264,12 +265,12 @@ export function JobsClient() {
 
     try {
       const query = new URLSearchParams({
-        email: session.user.email,
         jobId,
       })
 
       const res = await fetch(`${API_URL}/ai/match?${query.toString()}`, {
         cache: "no-store",
+        credentials: "include",
       })
 
       if (!res.ok) {
@@ -294,7 +295,6 @@ export function JobsClient() {
 
     try {
       const query = new URLSearchParams({
-        email: session.user.email,
         jobId,
       })
 
@@ -302,6 +302,7 @@ export function JobsClient() {
         `${API_URL}/ai/match/explain?${query.toString()}`,
         {
           cache: "no-store",
+          credentials: "include",
         }
       )
 
@@ -318,6 +319,22 @@ export function JobsClient() {
     } finally {
       setLoadingExplanations((current) => ({ ...current, [jobId]: false }))
     }
+  }
+
+  if (error) {
+    return (
+      <SidebarLayout current="jobs">
+        <section className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+          <h1 className="text-2xl font-medium tracking-tight">
+            We couldn’t verify your session.
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Please retry in a moment. If the problem persists, check the API auth
+            service.
+          </p>
+        </section>
+      </SidebarLayout>
+    )
   }
 
   if (isPending || !session?.user) {

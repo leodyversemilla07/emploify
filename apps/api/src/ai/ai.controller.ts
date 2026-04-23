@@ -1,5 +1,7 @@
-import { Body, Controller, Get, Post, Query } from "@nestjs/common"
+import { Body, Controller, Get, Post, Query, Req } from "@nestjs/common"
+import type { Request as ExpressRequest } from "express"
 
+import { requireSession } from "../auth/auth-session.js"
 // biome-ignore lint/style/useImportType: NestJS dependency injection requires a runtime class reference.
 import { AiService } from "./ai.service.js"
 
@@ -9,10 +11,10 @@ export class AiController {
 
   @Get("match")
   async getJobMatch(
-    @Query("email") email?: string,
+    @Req() req: ExpressRequest,
     @Query("jobId") jobId?: string
   ) {
-    if (!email || !jobId) {
+    if (!jobId) {
       return {
         score: 0,
         strengths: [],
@@ -22,35 +24,34 @@ export class AiController {
       }
     }
 
-    return this.aiService.getJobMatch({ email, jobId })
+    const session = await requireSession(req)
+    return this.aiService.getJobMatch({ email: session.user.email, jobId })
   }
 
   @Get("recommendations")
-  async getRecommendations(@Query("email") email?: string) {
-    if (!email) {
-      return {
-        recommendations: [],
-        topMissingSkills: [],
-      }
-    }
-
-    return this.aiService.getRecommendations(email)
+  async getRecommendations(@Req() req: ExpressRequest) {
+    const session = await requireSession(req)
+    return this.aiService.getRecommendations(session.user.email)
   }
 
   @Get("match/explain")
   async getJobMatchExplanation(
-    @Query("email") email?: string,
+    @Req() req: ExpressRequest,
     @Query("jobId") jobId?: string
   ) {
-    if (!email || !jobId) {
+    if (!jobId) {
       return {
-        explanation: "Provide email and jobId to get an AI match explanation.",
+        explanation: "Provide a jobId to get an AI match explanation.",
         scoreBreakdown: "",
         suggestion: "",
       }
     }
 
-    return this.aiService.getJobMatchExplanation({ email, jobId })
+    const session = await requireSession(req)
+    return this.aiService.getJobMatchExplanation({
+      email: session.user.email,
+      jobId,
+    })
   }
 
   @Post("parse-resume")
@@ -69,9 +70,10 @@ export class AiController {
 
   @Post("parse-resume-and-update")
   async parseResumeAndUpdate(
-    @Body() body: { email?: string; resumeText?: string },
+    @Req() req: ExpressRequest,
+    @Body() body: { resumeText?: string },
   ) {
-    if (!body.email || !body.resumeText?.trim()) {
+    if (!body.resumeText?.trim()) {
       return {
         summary: "",
         location: null,
@@ -80,8 +82,10 @@ export class AiController {
       }
     }
 
+    const session = await requireSession(req)
+
     return this.aiService.parseResumeAndUpdateProfile({
-      email: body.email,
+      email: session.user.email,
       resumeText: body.resumeText,
     })
   }
