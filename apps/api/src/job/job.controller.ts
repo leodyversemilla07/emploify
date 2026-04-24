@@ -6,6 +6,7 @@ import { CurrentUser } from "../auth/current-user.decorator.js"
 import type { SessionUser } from "../auth/auth.types.js"
 // biome-ignore lint/style/useImportType: NestJS dependency injection requires a runtime class reference.
 import { JobService } from "./job.service.js"
+import { SaveJobDto } from "./dto/save-job.dto.js"
 
 @Controller("jobs")
 export class JobController {
@@ -46,7 +47,7 @@ export class JobController {
   @UseGuards(AuthGuard)
   async saveJob(
     @CurrentUser() user: SessionUser,
-    @Body() body: { jobId: string }
+    @Body() body: SaveJobDto
   ) {
     return this.jobService.saveJob({
       ...body,

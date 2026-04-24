@@ -13,7 +13,6 @@ import {
   UseInterceptors,
 } from "@nestjs/common"
 import { FileInterceptor } from "@nestjs/platform-express"
-import type { ExperienceLevel } from "@prisma/client"
 import { access, mkdir, unlink, writeFile } from "node:fs/promises"
 import { basename, join } from "node:path"
 import type { Response as ExpressResponse } from "express"
@@ -24,6 +23,7 @@ import { CurrentUser } from "../auth/current-user.decorator.js"
 import type { SessionUser } from "../auth/auth.types.js"
 // biome-ignore lint/style/useImportType: NestJS dependency injection requires a runtime class reference.
 import { UserService } from "./user.service.js"
+import { UpsertProfileDto } from "./dto/upsert-profile.dto.js"
 
 @Controller("users")
 @UseGuards(AuthGuard)
@@ -175,13 +175,7 @@ export class UserController {
   @Put("profile")
   async upsertProfile(
     @CurrentUser() currentUser: SessionUser,
-    @Body()
-    body: {
-      name?: string
-      location?: string
-      skills?: string
-      experienceLevel?: ExperienceLevel | null
-    }
+    @Body() body: UpsertProfileDto
   ) {
     const { name, location, skills, experienceLevel } = body
 

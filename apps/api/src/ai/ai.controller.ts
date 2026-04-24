@@ -5,6 +5,7 @@ import { CurrentUser } from "../auth/current-user.decorator.js"
 import type { SessionUser } from "../auth/auth.types.js"
 // biome-ignore lint/style/useImportType: NestJS dependency injection requires a runtime class reference.
 import { AiService } from "./ai.service.js"
+import { ParseResumeDto } from "./dto/parse-resume.dto.js"
 
 @Controller("ai")
 export class AiController {
@@ -56,16 +57,7 @@ export class AiController {
   }
 
   @Post("parse-resume")
-  async parseResume(@Body() body: { resumeText?: string }) {
-    if (!body.resumeText?.trim()) {
-      return {
-        summary: "",
-        location: null,
-        skills: [],
-        experienceLevel: null,
-      }
-    }
-
+  async parseResume(@Body() body: ParseResumeDto) {
     return this.aiService.parseResumeText(body.resumeText)
   }
 
@@ -73,17 +65,8 @@ export class AiController {
   @UseGuards(AuthGuard)
   async parseResumeAndUpdate(
     @CurrentUser() currentUser: SessionUser,
-    @Body() body: { resumeText?: string },
+    @Body() body: ParseResumeDto,
   ) {
-    if (!body.resumeText?.trim()) {
-      return {
-        summary: "",
-        location: null,
-        skills: [],
-        experienceLevel: null,
-      }
-    }
-
     return this.aiService.parseResumeAndUpdateProfile({
       email: currentUser.email,
       resumeText: body.resumeText,

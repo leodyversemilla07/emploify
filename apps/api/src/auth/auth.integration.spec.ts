@@ -1,4 +1,4 @@
-import { ForbiddenException, UnauthorizedException } from "@nestjs/common"
+import { ForbiddenException, UnauthorizedException, ValidationPipe } from "@nestjs/common"
 import { Test } from "@nestjs/testing"
 import type { INestApplication } from "@nestjs/common"
 import request from "supertest"
@@ -55,6 +55,11 @@ describe("auth integration", () => {
     }).compile()
 
     app = moduleRef.createNestApplication()
+    app.useGlobalPipes(new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }))
     await app.init()
   })
 
@@ -123,21 +128,17 @@ describe("auth integration", () => {
       .expect(401)
   })
 
-  it("uses the session user instead of any spoofed email on save", async () => {
+  it("rejects spoofed extra fields on save requests", async () => {
     mockedRequireSession.mockResolvedValueOnce({
       user: { id: "user-1", email: "member@example.com" },
     })
-    jobService.saveJob.mockResolvedValueOnce({ id: "saved-1" })
 
     await request(app.getHttpServer())
       .post("/jobs/save")
       .send({ jobId: "job-1", email: "attacker@example.com" })
-      .expect(201)
+      .expect(400)
 
-    expect(jobService.saveJob).toHaveBeenCalledWith({
-      jobId: "job-1",
-      email: "member@example.com",
-    })
+    expect(jobService.saveJob).not.toHaveBeenCalled()
   })
 
   it("returns 401 for unauthenticated sync requests", async () => {
@@ -168,11 +169,10 @@ describe("auth integration", () => {
       .expect({ imported: 3 })
   })
 
-  it("uses the session user instead of any spoofed email on profile updates", async () => {
+  it("rejects spoofed extra fields on profile updates", async () => {
     mockedRequireSession.mockResolvedValueOnce({
       user: { id: "user-2", email: "owner@example.com" },
     })
-    userService.upsertProfile.mockResolvedValueOnce({ id: "profile-1" })
 
     await request(app.getHttpServer())
       .put("/users/profile")
@@ -182,13 +182,9 @@ describe("auth integration", () => {
         location: "Remote",
         resumeUrl: "http://localhost:4000/users/profile/resume/user-1-secret.txt",
       })
-      .expect(200)
+      .expect(400)
 
-    expect(userService.upsertProfile).toHaveBeenCalledWith({
-      name: "Owner",
-      location: "Remote",
-      email: "owner@example.com",
-    })
+    expect(userService.upsertProfile).not.toHaveBeenCalled()
   })
 
   it("serves resume downloads only to the owning authenticated user", async () => {

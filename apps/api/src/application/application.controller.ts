@@ -1,11 +1,12 @@
 import { Body, Controller, Get, Put, UseGuards } from "@nestjs/common"
-import type { ApplicationStatus } from "@prisma/client"
 
 import { AuthGuard } from "../auth/auth.guard.js"
 import { CurrentUser } from "../auth/current-user.decorator.js"
 import type { SessionUser } from "../auth/auth.types.js"
 // biome-ignore lint/style/useImportType: NestJS dependency injection requires a runtime class reference.
 import { ApplicationService } from "./application.service.js"
+import { UpdateApplicationNotesDto } from "./dto/update-application-notes.dto.js"
+import { UpdateApplicationStatusDto } from "./dto/update-application-status.dto.js"
 
 @Controller("applications")
 @UseGuards(AuthGuard)
@@ -25,7 +26,7 @@ export class ApplicationController {
   @Put("notes")
   async updateNotes(
     @CurrentUser() currentUser: SessionUser,
-    @Body() body: { applicationId: string; notes: string }
+    @Body() body: UpdateApplicationNotesDto
   ) {
     return this.applicationService.updateNotes({
       ...body,
@@ -36,10 +37,7 @@ export class ApplicationController {
   @Put("status")
   async updateStatus(
     @CurrentUser() currentUser: SessionUser,
-    @Body() body: {
-      applicationId: string
-      status: ApplicationStatus
-    }
+    @Body() body: UpdateApplicationStatusDto
   ) {
     return this.applicationService.updateStatus({
       ...body,
