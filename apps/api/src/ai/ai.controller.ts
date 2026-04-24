@@ -5,6 +5,7 @@ import { CurrentUser } from "../auth/current-user.decorator.js"
 import type { SessionUser } from "../auth/auth.types.js"
 // biome-ignore lint/style/useImportType: NestJS dependency injection requires a runtime class reference.
 import { AiService } from "./ai.service.js"
+import { MatchQueryDto } from "./dto/match-query.dto.js"
 import { ParseResumeDto } from "./dto/parse-resume.dto.js"
 
 @Controller("ai")
@@ -15,9 +16,9 @@ export class AiController {
   @UseGuards(AuthGuard)
   async getJobMatch(
     @CurrentUser() currentUser: SessionUser,
-    @Query("jobId") jobId?: string
+    @Query() dto: MatchQueryDto,
   ) {
-    if (!jobId) {
+    if (!dto.jobId) {
       return {
         score: 0,
         strengths: [],
@@ -27,7 +28,7 @@ export class AiController {
       }
     }
 
-    return this.aiService.getJobMatch({ email: currentUser.email, jobId })
+    return this.aiService.getJobMatch({ email: currentUser.email, jobId: dto.jobId })
   }
 
   @Get("recommendations")
@@ -40,9 +41,9 @@ export class AiController {
   @UseGuards(AuthGuard)
   async getJobMatchExplanation(
     @CurrentUser() currentUser: SessionUser,
-    @Query("jobId") jobId?: string
+    @Query() dto: MatchQueryDto,
   ) {
-    if (!jobId) {
+    if (!dto.jobId) {
       return {
         explanation: "Provide a jobId to get an AI match explanation.",
         scoreBreakdown: "",
@@ -52,7 +53,7 @@ export class AiController {
 
     return this.aiService.getJobMatchExplanation({
       email: currentUser.email,
-      jobId,
+      jobId: dto.jobId,
     })
   }
 

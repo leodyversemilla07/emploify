@@ -1,11 +1,11 @@
 import { Body, Controller, Get, Post, Query, UseGuards } from "@nestjs/common"
-import type { ExperienceLevel } from "@prisma/client"
 
 import { AdminGuard, AuthGuard, OptionalAuthGuard } from "../auth/auth.guard.js"
 import { CurrentUser } from "../auth/current-user.decorator.js"
 import type { SessionUser } from "../auth/auth.types.js"
 // biome-ignore lint/style/useImportType: NestJS dependency injection requires a runtime class reference.
 import { JobService } from "./job.service.js"
+import { ListJobsDto } from "./dto/list-jobs.dto.js"
 import { SaveJobDto } from "./dto/save-job.dto.js"
 
 @Controller("jobs")
@@ -16,19 +16,15 @@ export class JobController {
   @UseGuards(OptionalAuthGuard)
   async listJobs(
     @CurrentUser() user: SessionUser | null,
-    @Query("search") search?: string,
-    @Query("location") location?: string,
-    @Query("source") source?: string,
-    @Query("remote") remote?: string,
-    @Query("experienceLevel") experienceLevel?: ExperienceLevel
+    @Query() dto: ListJobsDto,
   ) {
     return this.jobService.listJobs({
       email: user?.email,
-      search,
-      location,
-      source,
-      remote: remote === undefined ? undefined : remote === "true",
-      experienceLevel,
+      search: dto.search,
+      location: dto.location,
+      source: dto.source,
+      remote: dto.remote,
+      experienceLevel: dto.experienceLevel,
     })
   }
 

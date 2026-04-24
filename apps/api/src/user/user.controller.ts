@@ -24,6 +24,7 @@ import { CurrentUser } from "../auth/current-user.decorator.js"
 import type { SessionUser } from "../auth/auth.types.js"
 // biome-ignore lint/style/useImportType: NestJS dependency injection requires a runtime class reference.
 import { UserService } from "./user.service.js"
+import { ResumeParamsDto } from "./dto/resume-params.dto.js"
 import { UpsertProfileDto } from "./dto/upsert-profile.dto.js"
 
 @Controller("users")
@@ -144,10 +145,11 @@ export class UserController {
   @Get("profile/resume/:fileName")
   async getResume(
     @CurrentUser() currentUser: SessionUser,
-    @Param("fileName") fileName: string,
+    @Param() params: ResumeParamsDto,
     @Res() res: ExpressResponse,
   ) {
-    if (!fileName || basename(fileName) !== fileName) {
+    const fileName = params.fileName
+    if (basename(fileName) !== fileName) {
       throw new BadRequestException("Invalid resume file name")
     }
 

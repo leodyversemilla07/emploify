@@ -9,6 +9,7 @@ jest.mock("../auth/current-user.decorator.js", () => ({
 }))
 
 import { JobController } from "./job.controller.js"
+import { ListJobsDto } from "./dto/list-jobs.dto.js"
 import type { SessionUser } from "../auth/auth.types.js"
 
 function createJobService() {
@@ -24,8 +25,14 @@ describe("JobController", () => {
   it("lists jobs anonymously without an email", async () => {
     const jobService = createJobService()
     const controller = new JobController(jobService as never)
+    const dto = new ListJobsDto()
+    dto.search = "react"
+    dto.location = "remote"
+    dto.source = "Lever"
+    dto.remote = true
+    dto.experienceLevel = "MID" as any
 
-    await controller.listJobs(null, "react", "remote", "Lever", "true", "MID")
+    await controller.listJobs(null, dto)
 
     expect(jobService.listJobs).toHaveBeenCalledWith({
       email: undefined,
@@ -42,7 +49,7 @@ describe("JobController", () => {
     const controller = new JobController(jobService as never)
     const user = { id: "user-1", email: "member@example.com" } as SessionUser
 
-    await controller.listJobs(user, undefined, undefined, undefined, undefined, undefined)
+    await controller.listJobs(user, new ListJobsDto())
 
     expect(jobService.listJobs).toHaveBeenCalledWith({
       email: "member@example.com",
