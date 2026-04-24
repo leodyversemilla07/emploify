@@ -19,6 +19,7 @@ import { toast } from "sonner"
 
 import { SessionErrorState } from "@/components/auth/session-error-state"
 import { SidebarLayout } from "@/components/sidebar-layout"
+import { apiJson } from "@/lib/api"
 import { useSession } from "@/lib/auth"
 
 type ApplicationStatus =
@@ -44,7 +45,6 @@ type ApplicationItem = {
   }
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"
 const columns: ApplicationStatus[] = [
   "SAVED",
   "APPLIED",
@@ -81,6 +81,7 @@ export function TrackerClient() {
   const [activeDropColumn, setActiveDropColumn] =
     useState<ApplicationStatus | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isPending && !error && !session?.user) {
@@ -93,18 +94,27 @@ export function TrackerClient() {
       if (!session?.user?.email) return
 
       setIsLoading(true)
-      const res = await fetch(`${API_URL}/applications`, {
-        cache: "no-store",
-        credentials: "include",
-      })
-      const data = (await res.json()) as ApplicationItem[]
-      setApplications(data)
-      setDraftNotes(
-        Object.fromEntries(
-          data.map((application) => [application.id, application.notes ?? ""])
+      setLoadError(null)
+
+      try {
+        const data = await apiJson<ApplicationItem[]>("/applications", {
+          cache: "no-store",
+        })
+        setApplications(data)
+        setDraftNotes(
+          Object.fromEntries(
+            data.map((application) => [application.id, application.notes ?? ""])
+          )
         )
-      )
-      setIsLoading(false)
+      } catch (error) {
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : "Could not load applications"
+        )
+      } finally {
+        setIsLoading(false)
+      }
     }
 
     void loadApplications()
@@ -125,26 +135,25 @@ export function TrackerClient() {
   ) {
     if (!session?.user?.email) return
 
-    const res = await fetch(`${API_URL}/applications/status`, {
-      method: "PUT",
-      headers: {
-        "content-type": "application/json",
-      },
-      credentials: "include",
-      body: JSON.stringify({
-        applicationId,
-        status,
-      }),
-    })
+    let updated: ApplicationItem
 
-    if (!res.ok) {
+    try {
+      updated = await apiJson<ApplicationItem>("/applications/status", {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          applicationId,
+          status,
+        }),
+      })
+    } catch {
       toast("Could not update status", {
         description: "Please try again in a moment.",
       })
       return
     }
-
-    const updated = (await res.json()) as ApplicationItem
     setApplications((current) =>
       current.map((item) => (item.id === updated.id ? updated : item))
     )
@@ -162,27 +171,26 @@ export function TrackerClient() {
 
     setSavingNotes((current) => ({ ...current, [applicationId]: true }))
 
-    const res = await fetch(`${API_URL}/applications/notes`, {
-      method: "PUT",
-      headers: {
-        "content-type": "application/json",
-      },
-      credentials: "include",
-      body: JSON.stringify({
-        applicationId,
-        notes: draftNotes[applicationId] ?? "",
-      }),
-    })
+    let updated: ApplicationItem
 
-    if (!res.ok) {
+    try {
+      updated = await apiJson<ApplicationItem>("/applications/notes", {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          applicationId,
+          notes: draftNotes[applicationId] ?? "",
+        }),
+      })
+    } catch {
       setSavingNotes((current) => ({ ...current, [applicationId]: false }))
       toast("Could not save notes", {
         description: "Please try again in a moment.",
       })
       return
     }
-
-    const updated = (await res.json()) as ApplicationItem
     setApplications((current) =>
       current.map((item) => (item.id === updated.id ? updated : item))
     )
@@ -270,6 +278,20 @@ export function TrackerClient() {
               <p className="text-sm text-muted-foreground">
                 Loading your applications...
               </p>
+            </CardContent>
+          </Card>
+        ) : loadError ? (
+          <Card>
+            <CardContent className="flex flex-col gap-4 pt-6">
+              <p className="text-sm text-muted-foreground">{loadError}</p>
+              <Button
+                onClick={() => {
+                  window.location.reload()
+                }}
+                variant="outline"
+              >
+                Retry applications
+              </Button>
             </CardContent>
           </Card>
         ) : (

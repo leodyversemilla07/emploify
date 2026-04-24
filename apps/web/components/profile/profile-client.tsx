@@ -24,6 +24,7 @@ import { toast } from "sonner"
 
 import { SessionErrorState } from "@/components/auth/session-error-state"
 import { SidebarLayout } from "@/components/sidebar-layout"
+import { apiFetch, apiJson } from "@/lib/api"
 import { useSession } from "@/lib/auth"
 
 type ProfileResponse = {
@@ -53,8 +54,6 @@ type ResumeUploadResponse = {
   parsedProfile: ResumeParseResponse | null
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"
-
 export function ProfileClient() {
   const router = useRouter()
   const { data: session, error: sessionError, isPending, refresh } = useSession()
@@ -74,6 +73,7 @@ export function ProfileClient() {
   const [isUploadingResume, setIsUploadingResume] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isPending && !sessionError && !session?.user) {
@@ -85,19 +85,24 @@ export function ProfileClient() {
     async function loadProfile() {
       if (!session?.user?.email) return
 
-      const res = await fetch(`${API_URL}/users/profile`, {
-        cache: "no-store",
-        credentials: "include",
-      })
-      const data = (await res.json()) as ProfileResponse
-      setProfile(data)
+      try {
+        setLoadError(null)
+        const data = await apiJson<ProfileResponse>("/users/profile", {
+          cache: "no-store",
+        })
+        setProfile(data)
 
-      // Populate form from loaded profile
-      setName(data.user?.name ?? session.user.name ?? "")
-      setLocation(data.profile?.location ?? "")
-      setSkills(data.profile?.skills ?? "")
-      setExperienceLevel(data.profile?.experienceLevel ?? "")
-      setResumeUrl(data.profile?.resumeUrl ?? "")
+        // Populate form from loaded profile
+        setName(data.user?.name ?? session.user.name ?? "")
+        setLocation(data.profile?.location ?? "")
+        setSkills(data.profile?.skills ?? "")
+        setExperienceLevel(data.profile?.experienceLevel ?? "")
+        setResumeUrl(data.profile?.resumeUrl ?? "")
+      } catch (error) {
+        setLoadError(
+          error instanceof Error ? error.message : "Could not load profile"
+        )
+      }
     }
 
     void loadProfile()
@@ -110,10 +115,9 @@ export function ProfileClient() {
     setIsSaving(true)
 
     try {
-      const res = await fetch(`${API_URL}/users/profile`, {
+      const res = await apiFetch("/users/profile", {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({
           name: name.trim(),
           location: location.trim(),
@@ -148,15 +152,13 @@ export function ProfileClient() {
       const formData = new FormData()
       formData.set("file", resumeFile)
 
-      const res = await fetch(`${API_URL}/users/profile/resume`, {
-        method: "POST",
-        credentials: "include",
-        body: formData,
-      })
-
-      if (!res.ok) throw new Error("Upload failed")
-
-      const data = (await res.json()) as ResumeUploadResponse
+      const data = await apiJson<ResumeUploadResponse>(
+        "/users/profile/resume",
+        {
+          method: "POST",
+          body: formData,
+        }
+      )
       setResumeUrl(data.resumeUrl)
 
       if (data.parsedProfile?.location) setLocation(data.parsedProfile.location)
@@ -193,16 +195,11 @@ export function ProfileClient() {
     setIsParsing(true)
 
     try {
-      const res = await fetch(`${API_URL}/ai/parse-resume`, {
+      const data = await apiJson<ResumeParseResponse>("/ai/parse-resume", {
         method: "POST",
-        credentials: "include",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ resumeText }),
       })
-
-      if (!res.ok) throw new Error("Parse failed")
-
-      const data = (await res.json()) as ResumeParseResponse
 
       // Auto-fill form fields (only overwrite if parse found something)
       if (data.location) setLocation(data.location)
@@ -243,6 +240,27 @@ export function ProfileClient() {
   const isProfileComplete = Boolean(
     skills.trim() && experienceLevel,
   )
+
+  if (loadError) {
+    return (
+      <SidebarLayout current="profile">
+        <section className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+          <h1 className="text-2xl font-medium tracking-tight">
+            We couldn’t load your profile.
+          </h1>
+          <p className="text-sm text-muted-foreground">{loadError}</p>
+          <Button
+            onClick={() => {
+              window.location.reload()
+            }}
+            className="bg-[var(--amber)] text-[var(--amber-foreground)] hover:bg-[var(--amber)]/80"
+          >
+            Retry profile
+          </Button>
+        </section>
+      </SidebarLayout>
+    )
+  }
 
   return (
     <SidebarLayout current="profile">

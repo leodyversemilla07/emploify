@@ -11,10 +11,11 @@ import {
 } from "@workspace/ui/components/card"
 import { Separator } from "@workspace/ui/components/separator"
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 
 import { SessionErrorState } from "@/components/auth/session-error-state"
 import { SidebarLayout } from "@/components/sidebar-layout"
+import { apiJson } from "@/lib/api"
 import { useSession } from "@/lib/auth"
 
 type ProfileResponse = {
@@ -73,8 +74,6 @@ type TopMatch = {
   matchScore: number | null
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"
-
 export function DashboardClient() {
   const { data: session, error, isPending, refresh } = useSession()
   const [profile, setProfile] = useState<ProfileResponse | null>(null)
@@ -82,44 +81,44 @@ export function DashboardClient() {
   const [recommendations, setRecommendations] =
     useState<RecommendationsResponse | null>(null)
   const [topMatches, setTopMatches] = useState<TopMatch[]>([])
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [isLoadingData, setIsLoadingData] = useState(false)
 
-  useEffect(() => {
-    async function loadProfile() {
-      if (!session?.user?.email) return
+  const loadDashboard = useCallback(async () => {
+    if (!session?.user?.email) return
 
-      const [profileRes, analyticsRes, recommendationsRes, jobsRes] = await Promise.all([
-        fetch(`${API_URL}/users/profile`, {
-          cache: "no-store",
-          credentials: "include",
-        }),
-        fetch(`${API_URL}/applications/analytics`, {
-          cache: "no-store",
-          credentials: "include",
-        }),
-        fetch(`${API_URL}/ai/recommendations`, {
-          cache: "no-store",
-          credentials: "include",
-        }),
-        fetch(`${API_URL}/jobs`, {
-          cache: "no-store",
-          credentials: "include",
-        }),
-      ])
+    setIsLoadingData(true)
+    setLoadError(null)
 
-      const profileData = (await profileRes.json()) as ProfileResponse
-      const analyticsData = (await analyticsRes.json()) as AnalyticsResponse
-      const recommendationsData =
-        (await recommendationsRes.json()) as RecommendationsResponse
-      const jobsData = (await jobsRes.json()) as TopMatch[]
+    try {
+      const [profileData, analyticsData, recommendationsData, jobsData] =
+        await Promise.all([
+          apiJson<ProfileResponse>("/users/profile", { cache: "no-store" }),
+          apiJson<AnalyticsResponse>("/applications/analytics", {
+            cache: "no-store",
+          }),
+          apiJson<RecommendationsResponse>("/ai/recommendations", {
+            cache: "no-store",
+          }),
+          apiJson<TopMatch[]>("/jobs", { cache: "no-store" }),
+        ])
+
       setProfile(profileData)
       setAnalytics(analyticsData)
       setRecommendations(recommendationsData)
       setTopMatches(jobsData.filter((j) => j.matchScore !== null).slice(0, 3))
+    } catch (error) {
+      setLoadError(
+        error instanceof Error ? error.message : "Could not load dashboard data"
+      )
+    } finally {
+      setIsLoadingData(false)
     }
-
-    void loadProfile()
   }, [session?.user?.email])
 
+  useEffect(() => {
+    void loadDashboard()
+  }, [loadDashboard])
 
   if (error) {
     return <SessionErrorState current="dashboard" onRetry={refresh} />
@@ -142,6 +141,26 @@ export function DashboardClient() {
             <Skeleton className="h-64" />
             <Skeleton className="h-64" />
           </div>
+        </section>
+      </SidebarLayout>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <SidebarLayout current="dashboard">
+        <section className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+          <h1 className="text-2xl font-medium tracking-tight">
+            We couldn’t load your dashboard.
+          </h1>
+          <p className="text-sm text-muted-foreground">{loadError}</p>
+          <Button
+            onClick={() => void loadDashboard()}
+            disabled={isLoadingData}
+            className="bg-[var(--amber)] text-[var(--amber-foreground)] hover:bg-[var(--amber)]/80"
+          >
+            {isLoadingData ? "Retrying..." : "Retry dashboard"}
+          </Button>
         </section>
       </SidebarLayout>
     )

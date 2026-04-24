@@ -24,6 +24,7 @@ import { toast } from "sonner"
 
 import { SessionErrorState } from "@/components/auth/session-error-state"
 import { SidebarLayout } from "@/components/sidebar-layout"
+import { apiFetch, apiJson } from "@/lib/api"
 import { useSession } from "@/lib/auth"
 
 type ProfileResponse = {
@@ -83,8 +84,6 @@ type SyncDetails = {
   }>
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"
-
 function JobDescription({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false)
   const needsTruncation = text.length > 280
@@ -130,6 +129,7 @@ export function JobsClient() {
   const [lastRun, setLastRun] = useState<SyncRun | null>(null)
   const [syncDetails, setSyncDetails] = useState<SyncDetails | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [jobsLoadError, setJobsLoadError] = useState<string | null>(null)
   const [isSyncing, setIsSyncing] = useState(false)
   const [search, setSearch] = useState("")
   const [location, setLocation] = useState("")
@@ -142,25 +142,17 @@ export function JobsClient() {
 
     setAdminStateError(null)
 
-    const res = await fetch(`${API_URL}/users/profile`, {
+    const data = await apiJson<ProfileResponse>("/users/profile", {
       cache: "no-store",
-      credentials: "include",
     })
-
-    if (!res.ok) {
-      throw new Error(`Failed to load profile (${res.status})`)
-    }
-
-    const data = (await res.json()) as ProfileResponse
     setIsAdmin(Boolean(data.user?.isAdmin))
   }, [session?.user?.email])
 
   const loadSyncStatus = useCallback(async () => {
-    const res = await fetch(`${API_URL}/jobs/sync/status`, {
-      cache: "no-store",
-      credentials: "include",
-    })
-    const data = (await res.json()) as { lastRun: SyncRun | null }
+    const data = await apiJson<{ lastRun: SyncRun | null }>(
+      "/jobs/sync/status",
+      { cache: "no-store" }
+    )
     setLastRun(data.lastRun)
     setSyncDetails(
       data.lastRun?.details
@@ -173,6 +165,7 @@ export function JobsClient() {
     if (!session?.user?.email) return
 
     setIsLoading(true)
+    setJobsLoadError(null)
     const query = new URLSearchParams()
 
     if (search) query.set("search", search)
@@ -181,13 +174,21 @@ export function JobsClient() {
     if (experienceLevel) query.set("experienceLevel", experienceLevel)
     if (remoteOnly) query.set("remote", "true")
 
-    const res = await fetch(`${API_URL}/jobs?${query.toString()}`, {
-      cache: "no-store",
-      credentials: "include",
-    })
-    const data = (await res.json()) as JobItem[]
-    setJobs(data)
-    setIsLoading(false)
+    try {
+      const data = await apiJson<JobItem[]>(`/jobs?${query.toString()}`, {
+        cache: "no-store",
+      })
+      setJobs(data)
+    } catch (error) {
+      setJobsLoadError(
+        error instanceof Error ? error.message : "Could not load jobs"
+      )
+      toast("Could not load jobs", {
+        description: "Please retry in a moment.",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }, [
     experienceLevel,
     location,
@@ -210,7 +211,11 @@ export function JobsClient() {
   useEffect(() => {
     if (!session?.user?.email) return
 
-    void loadSyncStatus()
+    void loadSyncStatus().catch(() => {
+      toast("Could not load sync status", {
+        description: "Please retry in a moment.",
+      })
+    })
     void loadProfile().catch((loadError) => {
       setIsAdmin(false)
       setAdminStateError(
@@ -231,16 +236,7 @@ export function JobsClient() {
     setIsSyncing(true)
 
     try {
-      const res = await fetch(`${API_URL}/jobs/sync`, {
-        method: "POST",
-        credentials: "include",
-      })
-
-      if (!res.ok) {
-        throw new Error("Could not sync jobs")
-      }
-
-      const data = (await res.json()) as {
+      const data = await apiJson<{
         imported: number
         sources: string[]
         providerResults: Array<{
@@ -250,7 +246,7 @@ export function JobsClient() {
           message: string
         }>
         lastRun: SyncRun
-      }
+      }>("/jobs/sync", { method: "POST" })
       await loadJobs()
       setLastRun(data.lastRun)
       setSyncDetails(
@@ -274,9 +270,8 @@ export function JobsClient() {
   async function handleSaveJob(jobId: string) {
     if (!session?.user?.email) return
 
-    const res = await fetch(`${API_URL}/jobs/save`, {
+    const res = await apiFetch("/jobs/save", {
       method: "POST",
-      credentials: "include",
       headers: {
         "content-type": "application/json",
       },
@@ -311,16 +306,9 @@ export function JobsClient() {
         jobId,
       })
 
-      const res = await fetch(`${API_URL}/ai/match?${query.toString()}`, {
+      const data = await apiJson<MatchInsight>(`/ai/match?${query.toString()}`, {
         cache: "no-store",
-        credentials: "include",
       })
-
-      if (!res.ok) {
-        throw new Error("Could not fetch match")
-      }
-
-      const data = (await res.json()) as MatchInsight
       setMatches((current) => ({ ...current, [jobId]: data }))
     } catch {
       toast("Could not generate match insight", {
@@ -341,19 +329,10 @@ export function JobsClient() {
         jobId,
       })
 
-      const res = await fetch(
-        `${API_URL}/ai/match/explain?${query.toString()}`,
-        {
-          cache: "no-store",
-          credentials: "include",
-        }
+      const data = await apiJson<MatchExplanation>(
+        `/ai/match/explain?${query.toString()}`,
+        { cache: "no-store" }
       )
-
-      if (!res.ok) {
-        throw new Error("Could not fetch explanation")
-      }
-
-      const data = (await res.json()) as MatchExplanation
       setExplanations((current) => ({ ...current, [jobId]: data }))
     } catch {
       toast("Could not generate AI explanation", {
@@ -513,6 +492,23 @@ export function JobsClient() {
           </CardContent>
         </Card>
 
+        {jobsLoadError ? (
+          <Card>
+            <CardContent className="flex flex-col gap-4 pt-6">
+              <div className="flex flex-col gap-2">
+                <p className="text-sm font-medium">Could not load jobs.</p>
+                <p className="text-sm text-muted-foreground">{jobsLoadError}</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void loadJobs()}
+              >
+                Retry jobs
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
         <div className="grid gap-4">
           {jobs.map((job) => {
             const match = matches[job.id]
@@ -657,6 +653,7 @@ export function JobsClient() {
             )
           })}
         </div>
+        )}
       </section>
     </SidebarLayout>
   )
