@@ -1,6 +1,9 @@
 import { ForbiddenException, UnauthorizedException, ValidationPipe } from "@nestjs/common"
 import { Test } from "@nestjs/testing"
 import type { INestApplication } from "@nestjs/common"
+import { access, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import request from "supertest"
 
 jest.mock("./auth-session.js", () => ({
@@ -19,6 +22,8 @@ import { UserService } from "../user/user.service.js"
 
 describe("auth integration", () => {
   let app: INestApplication
+  let originalCwd: string
+  let tempCwd: string
 
   const jobService = {
     getSyncStatus: jest.fn(),
@@ -42,6 +47,10 @@ describe("auth integration", () => {
   const mockedRequireAdminSession = jest.mocked(authSession.requireAdminSession)
 
   beforeAll(async () => {
+    originalCwd = process.cwd()
+    tempCwd = await mkdtemp(join(tmpdir(), "emploify-api-test-"))
+    process.chdir(tempCwd)
+
     const moduleRef = await Test.createTestingModule({
       controllers: [JobController, UserController],
       providers: [
@@ -67,6 +76,9 @@ describe("auth integration", () => {
     if (app) {
       await app.close()
     }
+
+    process.chdir(originalCwd)
+    await rm(tempCwd, { force: true, recursive: true })
   })
 
   beforeEach(() => {
@@ -188,6 +200,10 @@ describe("auth integration", () => {
   })
 
   it("serves resume downloads only to the owning authenticated user", async () => {
+    const uploadsDir = join(tempCwd, "uploads", "resumes")
+    await mkdir(uploadsDir, { recursive: true })
+    await writeFile(join(uploadsDir, "user-3-123.txt"), "resume")
+
     mockedRequireSession.mockResolvedValueOnce({
       user: { id: "user-3", email: "owner@example.com" },
     })
@@ -199,7 +215,8 @@ describe("auth integration", () => {
 
     await request(app.getHttpServer())
       .get("/users/profile/resume/user-3-123.txt")
-      .expect(404)
+      .expect(200)
+      .expect("Content-Disposition", /attachment; filename="user-3-123.txt"/)
 
     expect(userService.getProfileByEmail).toHaveBeenCalledWith("owner@example.com")
   })
@@ -217,5 +234,98 @@ describe("auth integration", () => {
     await request(app.getHttpServer())
       .get("/users/profile/resume/attacker.html")
       .expect(404)
+  })
+
+  it("rejects unsupported resume upload MIME types", async () => {
+    mockedRequireSession.mockResolvedValueOnce({
+      user: { id: "user-5", email: "owner@example.com" },
+    })
+
+    await request(app.getHttpServer())
+      .post("/users/profile/resume")
+      .attach("file", Buffer.from("<html></html>"), {
+        contentType: "text/html",
+        filename: "resume.html",
+      })
+      .expect(400)
+
+    expect(userService.updateResumeProfile).not.toHaveBeenCalled()
+  })
+
+  it("uploads text resumes with safe extensions and parsed profile data", async () => {
+    mockedRequireSession.mockResolvedValueOnce({
+      user: { id: "user-6", email: "owner@example.com" },
+    })
+    userService.getProfileByEmail.mockResolvedValueOnce({ profile: null })
+    aiService.parseResumeText.mockResolvedValueOnce({
+      summary: "React developer",
+      location: "Remote",
+      skills: ["React", "TypeScript"],
+      experienceLevel: "JUNIOR",
+    })
+    userService.updateResumeProfile.mockResolvedValueOnce({ id: "profile-1" })
+
+    const response = await request(app.getHttpServer())
+      .post("/users/profile/resume")
+      .attach("file", Buffer.from("React developer"), {
+        contentType: "text/plain",
+        filename: "resume.html",
+      })
+      .expect(201)
+
+    expect(response.body.resumeUrl).toMatch(
+      /\/users\/profile\/resume\/user-6-\d+\.txt$/
+    )
+    expect(response.body.parseStatus).toBe("parsed")
+    expect(aiService.parseResumeText).toHaveBeenCalledWith("React developer")
+    expect(userService.updateResumeProfile).toHaveBeenCalledWith({
+      email: "owner@example.com",
+      resumeUrl: expect.stringMatching(
+        /\/users\/profile\/resume\/user-6-\d+\.txt$/
+      ),
+      parsed: {
+        summary: "React developer",
+        location: "Remote",
+        skills: ["React", "TypeScript"],
+        experienceLevel: "JUNIOR",
+      },
+    })
+  })
+
+  it("deletes the previous stored resume after replacement uploads", async () => {
+    const uploadsDir = join(tempCwd, "uploads", "resumes")
+    const previousFileName = "user-7-old.txt"
+    await mkdir(uploadsDir, { recursive: true })
+    await writeFile(join(uploadsDir, previousFileName), "old resume")
+
+    mockedRequireSession.mockResolvedValueOnce({
+      user: { id: "user-7", email: "owner@example.com" },
+    })
+    userService.getProfileByEmail.mockResolvedValueOnce({
+      profile: {
+        resumeUrl: `http://localhost:4000/users/profile/resume/${previousFileName}`,
+      },
+    })
+    userService.updateResumeProfile.mockResolvedValueOnce({ id: "profile-2" })
+
+    await request(app.getHttpServer())
+      .post("/users/profile/resume")
+      .attach("file", Buffer.from("%PDF"), {
+        contentType: "application/pdf",
+        filename: "resume.pdf",
+      })
+      .expect(201)
+
+    await expect(access(join(uploadsDir, previousFileName))).rejects.toMatchObject({
+      code: "ENOENT",
+    })
+    expect(aiService.parseResumeText).not.toHaveBeenCalled()
+    expect(userService.updateResumeProfile).toHaveBeenCalledWith({
+      email: "owner@example.com",
+      resumeUrl: expect.stringMatching(
+        /\/users\/profile\/resume\/user-7-\d+\.pdf$/
+      ),
+      parsed: null,
+    })
   })
 })
