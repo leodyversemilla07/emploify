@@ -18,6 +18,7 @@ import { basename, join } from "node:path"
 import type { Response as ExpressResponse } from "express"
 
 import { AiService } from "../ai/ai.service.js"
+import { extractTextFromBuffer } from "../ai/resume-parser.js"
 import { isAdminEmail } from "../auth/auth-session.js"
 import { AuthGuard } from "../auth/auth.guard.js"
 import { CurrentUser } from "../auth/current-user.decorator.js"
@@ -104,9 +105,20 @@ export class UserController {
     const baseURL = (process.env.BETTER_AUTH_URL ?? "http://localhost:4000").replace(/\/$/, "")
     const resumeUrl = `${baseURL}/users/profile/resume/${fileName}`
 
-    const parsed = file.mimetype === "text/plain"
-      ? await this.aiService.parseResumeText(file.buffer.toString("utf-8"))
-      : null
+    let parsed = null
+
+    if (file.mimetype === "text/plain") {
+      parsed = await this.aiService.parseResumeText(file.buffer.toString("utf-8"))
+    } else if (
+      file.mimetype === "application/pdf" ||
+      file.mimetype ===
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ) {
+      const extractedText = await extractTextFromBuffer(file.buffer, file.mimetype)
+      if (extractedText) {
+        parsed = await this.aiService.parseResumeText(extractedText)
+      }
+    }
 
     try {
       await this.userService.updateResumeProfile({

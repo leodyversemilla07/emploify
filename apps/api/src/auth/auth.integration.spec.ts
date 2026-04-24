@@ -12,9 +12,14 @@ jest.mock("./auth-session.js", () => ({
   requireSession: jest.fn(),
 }))
 
+jest.mock("../ai/resume-parser.js", () => ({
+  extractTextFromBuffer: jest.fn(),
+}))
+
 import { AdminGuard, AuthGuard, OptionalAuthGuard } from "./auth.guard.js"
 import * as authSession from "./auth-session.js"
 import { AiService } from "../ai/ai.service.js"
+import { extractTextFromBuffer } from "../ai/resume-parser.js"
 import { JobController } from "../job/job.controller.js"
 import { JobService } from "../job/job.service.js"
 import { UserController } from "../user/user.controller.js"
@@ -327,5 +332,69 @@ describe("auth integration", () => {
       ),
       parsed: null,
     })
+  })
+
+  it("parses PDF resumes and updates profile", async () => {
+    const mockedExtractText = jest.mocked(extractTextFromBuffer)
+    mockedExtractText.mockResolvedValueOnce("PDF extracted text")
+
+    mockedRequireSession.mockResolvedValueOnce({
+      user: { id: "user-9", email: "owner@example.com" },
+    })
+    userService.getProfileByEmail.mockResolvedValueOnce({ profile: null })
+    aiService.parseResumeText.mockResolvedValueOnce({
+      summary: "PDF resume",
+      location: "Remote",
+      skills: ["PDF"],
+      experienceLevel: "SENIOR",
+    })
+    userService.updateResumeProfile.mockResolvedValueOnce({ id: "profile-3" })
+
+    const response = await request(app.getHttpServer())
+      .post("/users/profile/resume")
+      .attach("file", Buffer.from("%PDF-1.4 content"), {
+        contentType: "application/pdf",
+        filename: "resume.pdf",
+      })
+      .expect(201)
+
+    expect(response.body.parseStatus).toBe("parsed")
+    expect(mockedExtractText).toHaveBeenCalledWith(
+      expect.any(Buffer),
+      "application/pdf"
+    )
+    expect(aiService.parseResumeText).toHaveBeenCalledWith("PDF extracted text")
+  })
+
+  it("parses DOCX resumes and updates profile", async () => {
+    const mockedExtractText = jest.mocked(extractTextFromBuffer)
+    mockedExtractText.mockResolvedValueOnce("DOCX extracted text")
+
+    mockedRequireSession.mockResolvedValueOnce({
+      user: { id: "user-10", email: "owner@example.com" },
+    })
+    userService.getProfileByEmail.mockResolvedValueOnce({ profile: null })
+    aiService.parseResumeText.mockResolvedValueOnce({
+      summary: "DOCX resume",
+      location: "Office",
+      skills: ["DOCX"],
+      experienceLevel: "MID",
+    })
+    userService.updateResumeProfile.mockResolvedValueOnce({ id: "profile-4" })
+
+    const response = await request(app.getHttpServer())
+      .post("/users/profile/resume")
+      .attach("file", Buffer.from("DOCX content"), {
+        contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        filename: "resume.docx",
+      })
+      .expect(201)
+
+    expect(response.body.parseStatus).toBe("parsed")
+    expect(mockedExtractText).toHaveBeenCalledWith(
+      expect.any(Buffer),
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
+    expect(aiService.parseResumeText).toHaveBeenCalledWith("DOCX extracted text")
   })
 })
