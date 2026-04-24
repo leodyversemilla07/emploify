@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common"
+import { Injectable, NotFoundException } from "@nestjs/common"
 import {
   ApplicationStatus,
   type ApplicationStatus as ApplicationStatusType,
@@ -94,7 +94,7 @@ export class ApplicationService {
     })
 
     if (!application) {
-      throw new Error("Application not found")
+      throw new NotFoundException("Application not found")
     }
 
     return this.prisma.application.update({
@@ -121,7 +121,7 @@ export class ApplicationService {
     })
 
     if (!application) {
-      throw new Error("Application not found")
+      throw new NotFoundException("Application not found")
     }
 
     return this.prisma.application.update({

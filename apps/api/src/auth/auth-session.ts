@@ -71,6 +71,10 @@ function getAdminEmails() {
     .filter(Boolean)
 }
 
+export function isAdminEmail(email: string) {
+  return getAdminEmails().includes(email.trim().toLowerCase())
+}
+
 export async function requireAdminSession(
   req: ExpressRequest
 ): Promise<AuthenticatedSession> {

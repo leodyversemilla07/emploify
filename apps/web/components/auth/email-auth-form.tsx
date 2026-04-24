@@ -13,11 +13,12 @@ import { Separator } from "@workspace/ui/components/separator"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Spinner } from "@workspace/ui/components/spinner"
-import { useMemo, useState } from "react"
-import { useAuthActions } from "@/lib/auth"
+import { useEffect, useMemo, useState } from "react"
+import { useAuthActions, useSession } from "@/lib/auth"
 
 export function EmailAuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter()
+  const { data: session, isPending: isSessionPending } = useSession()
   const { signIn, signUp } = useAuthActions()
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -40,6 +41,13 @@ export function EmailAuthForm({ mode }: { mode: "login" | "signup" }) {
     if (!isSignup || !confirmPassword) return false
     return password !== confirmPassword
   }, [confirmPassword, isSignup, password])
+
+  useEffect(() => {
+    if (!isSessionPending && session?.user) {
+      router.replace("/dashboard")
+      router.refresh()
+    }
+  }, [isSessionPending, router, session])
 
   async function handleSocialSignIn(provider: "google" | "github") {
     setError(null)
@@ -100,6 +108,14 @@ export function EmailAuthForm({ mode }: { mode: "login" | "signup" }) {
     } finally {
       setIsPending(false)
     }
+  }
+
+  if (!isSessionPending && session?.user) {
+    return (
+      <div className="flex flex-col gap-3 text-center text-sm text-muted-foreground">
+        <p>You’re already signed in. Redirecting to your dashboard…</p>
+      </div>
+    )
   }
 
   return (

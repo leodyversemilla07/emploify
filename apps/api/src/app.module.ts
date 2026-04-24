@@ -10,10 +10,11 @@ import { HealthController } from "./health.controller.js"
 import { JobModule } from "./job/job.module.js"
 import { PrismaModule } from "./prisma/prisma.module.js"
 import { UserModule } from "./user/user.module.js"
+import { validateEnv } from "./config/env.validation.js"
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     LlmModule,
     PrismaModule,
     UserModule,

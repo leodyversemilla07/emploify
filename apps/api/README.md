@@ -28,12 +28,14 @@ cp .env.example .env
 
 Minimum required variables:
 - `DATABASE_URL`
-- `BETTER_AUTH_SECRET`
-- `BETTER_AUTH_URL`
-- `FRONTEND_URL`
+- `BETTER_AUTH_SECRET` (minimum 16 characters)
+- `BETTER_AUTH_URL` (must be a valid URL)
+- `FRONTEND_URL` (must be a valid URL)
 
 Admin-only actions:
-- `ADMIN_EMAILS` — comma-separated emails allowed to trigger protected admin routes like `POST /jobs/sync`
+- `ADMIN_EMAILS` — optional comma-separated valid emails allowed to trigger protected admin routes like `POST /jobs/sync`
+
+The API now validates required configuration at startup and exits early if these values are missing or malformed.
 
 Optional provider variables:
 - `GREENHOUSE_COMPANY_NAME`

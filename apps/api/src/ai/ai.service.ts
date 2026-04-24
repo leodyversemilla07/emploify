@@ -1,4 +1,8 @@
-import { Injectable } from "@nestjs/common"
+import {
+  Injectable,
+  NotFoundException,
+  ServiceUnavailableException,
+} from "@nestjs/common"
 import type { ExperienceLevel, Job, Profile } from "@prisma/client"
 // biome-ignore lint/style/useImportType: NestJS dependency injection requires a runtime class reference.
 import { PrismaService } from "../prisma/prisma.service.js"
@@ -288,7 +292,7 @@ JSON format: {"skills": [...], "experienceLevel": "...", "location": "...", "sum
     })
 
     if (!user) {
-      throw new Error("User not found")
+      throw new NotFoundException("User not found")
     }
 
     const skillsStr = parsed.skills.join(", ")
@@ -325,7 +329,7 @@ JSON format: {"skills": [...], "experienceLevel": "...", "location": "...", "sum
     })
 
     if (!user || !job) {
-      throw new Error("Match context not found")
+      throw new NotFoundException("Match context not found")
     }
 
     return this.buildMatch(user.profile, job)
@@ -413,7 +417,7 @@ JSON format: {"skills": [...], "experienceLevel": "...", "location": "...", "sum
     })
 
     if (!user || !job) {
-      throw new Error("Match context not found")
+      throw new NotFoundException("Match context not found")
     }
 
     const match = this.buildMatch(user.profile, job)
@@ -454,38 +458,37 @@ Please provide:
 Format your response as JSON with keys: explanation, scoreBreakdown, suggestion.
 `
 
+    const content = await this.llm.chat(
+      [{ role: "user", content: prompt }],
+      { temperature: 0.7, maxTokens: 500, json: true },
+    )
+
+    if (!content) {
+      throw new ServiceUnavailableException("Empty response from LLM")
+    }
+
+    let parsed: {
+      explanation: string
+      scoreBreakdown: string
+      suggestion: string
+    }
+
     try {
-      const content = await this.llm.chat(
-        [{ role: "user", content: prompt }],
-        { temperature: 0.7, maxTokens: 500, json: true },
-      )
-
-      if (!content) {
-        throw new Error("Empty response from LLM")
-      }
-
-      const parsed = JSON.parse(content) as {
+      parsed = JSON.parse(content) as {
         explanation: string
         scoreBreakdown: string
         suggestion: string
       }
+    } catch {
+      throw new ServiceUnavailableException("Invalid JSON response from LLM")
+    }
 
-      return {
-        explanation: parsed.explanation ?? "Unable to generate explanation.",
-        scoreBreakdown: parsed.scoreBreakdown ?? "Score breakdown unavailable.",
-        suggestion:
-          parsed.suggestion ??
-          "Consider updating your profile with more skills.",
-      }
-    } catch (_error) {
-      return {
-        explanation:
-          "Unable to generate AI explanation at this time. Please try again later.",
-        scoreBreakdown:
-          "AI explanation service temporarily unavailable. Showing heuristic match details instead.",
-        suggestion:
-          "Check your LLM provider configuration and quota, or try again in a few minutes.",
-      }
+    return {
+      explanation: parsed.explanation ?? "Unable to generate explanation.",
+      scoreBreakdown: parsed.scoreBreakdown ?? "Score breakdown unavailable.",
+      suggestion:
+        parsed.suggestion ??
+        "Consider updating your profile with more skills.",
     }
   }
 
@@ -495,7 +498,7 @@ Format your response as JSON with keys: explanation, scoreBreakdown, suggestion.
     })
 
     if (!user) {
-      throw new Error("User not found")
+      throw new NotFoundException("User not found")
     }
 
     const savedJob = await this.prisma.savedJob.upsert({

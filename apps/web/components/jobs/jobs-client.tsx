@@ -22,8 +22,18 @@ import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
+import { SessionErrorState } from "@/components/auth/session-error-state"
 import { SidebarLayout } from "@/components/sidebar-layout"
 import { useSession } from "@/lib/auth"
+
+type ProfileResponse = {
+  user?: {
+    id: string
+    name: string
+    email: string
+    isAdmin?: boolean
+  }
+}
 
 type JobItem = {
   id: string
@@ -103,8 +113,10 @@ function JobDescription({ text }: { text: string }) {
 
 export function JobsClient() {
   const router = useRouter()
-  const { data: session, error, isPending } = useSession()
+  const { data: session, error, isPending, refresh } = useSession()
   const [jobs, setJobs] = useState<JobItem[]>([])
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [adminStateError, setAdminStateError] = useState<string | null>(null)
   const [matches, setMatches] = useState<Record<string, MatchInsight>>({})
   const [loadingMatches, setLoadingMatches] = useState<Record<string, boolean>>(
     {}
@@ -124,6 +136,24 @@ export function JobsClient() {
   const [source, setSource] = useState("")
   const [experienceLevel, setExperienceLevel] = useState("")
   const [remoteOnly, setRemoteOnly] = useState(false)
+
+  const loadProfile = useCallback(async () => {
+    if (!session?.user?.email) return
+
+    setAdminStateError(null)
+
+    const res = await fetch(`${API_URL}/users/profile`, {
+      cache: "no-store",
+      credentials: "include",
+    })
+
+    if (!res.ok) {
+      throw new Error(`Failed to load profile (${res.status})`)
+    }
+
+    const data = (await res.json()) as ProfileResponse
+    setIsAdmin(Boolean(data.user?.isAdmin))
+  }, [session?.user?.email])
 
   const loadSyncStatus = useCallback(async () => {
     const res = await fetch(`${API_URL}/jobs/sync/status`, {
@@ -175,8 +205,21 @@ export function JobsClient() {
 
   useEffect(() => {
     void loadJobs()
+  }, [loadJobs])
+
+  useEffect(() => {
+    if (!session?.user?.email) return
+
     void loadSyncStatus()
-  }, [loadJobs, loadSyncStatus])
+    void loadProfile().catch((loadError) => {
+      setIsAdmin(false)
+      setAdminStateError(
+        loadError instanceof Error
+          ? loadError.message
+          : "Failed to load admin state"
+      )
+    })
+  }, [loadProfile, loadSyncStatus, session?.user?.email])
 
   const resultLabel = useMemo(() => {
     if (isLoading) return "Loading roles..."
@@ -322,19 +365,7 @@ export function JobsClient() {
   }
 
   if (error) {
-    return (
-      <SidebarLayout current="jobs">
-        <section className="mx-auto flex w-full max-w-3xl flex-col gap-4">
-          <h1 className="text-2xl font-medium tracking-tight">
-            We couldn’t verify your session.
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Please retry in a moment. If the problem persists, check the API auth
-            service.
-          </p>
-        </section>
-      </SidebarLayout>
-    )
+    return <SessionErrorState current="jobs" onRetry={refresh} />
   }
 
   if (isPending || !session?.user) {
@@ -370,6 +401,15 @@ export function JobsClient() {
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
+            {isAdmin ? (
+              <Button
+                onClick={() => void handleSyncJobs()}
+                disabled={isSyncing}
+                className="bg-[var(--amber)] text-[var(--amber-foreground)] hover:bg-[var(--amber)]/80"
+              >
+                {isSyncing ? "Syncing jobs..." : "Sync jobs"}
+              </Button>
+            ) : null}
             <Button asChild variant="outline">
               <Link href="/tracker">Open tracker</Link>
             </Button>
@@ -382,6 +422,38 @@ export function JobsClient() {
             <CardDescription>
               Filter by role, location, source, remote, and experience level.
             </CardDescription>
+            {lastRun ? (
+              <p className="text-xs text-muted-foreground">
+                Last sync: {lastRun.status.toLowerCase()} · {new Date(lastRun.startedAt).toLocaleString()}
+              </p>
+            ) : null}
+            {isAdmin && syncDetails?.summary ? (
+              <p className="text-xs text-muted-foreground">{syncDetails.summary}</p>
+            ) : null}
+            {adminStateError ? (
+              <div className="flex flex-col gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-muted-foreground">
+                  We couldn’t verify admin access for sync controls. Retry to check your permissions.
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    void loadProfile().catch((loadError) => {
+                      setIsAdmin(false)
+                      setAdminStateError(
+                        loadError instanceof Error
+                          ? loadError.message
+                          : "Failed to load admin state"
+                      )
+                    })
+                  }}
+                >
+                  Retry admin check
+                </Button>
+              </div>
+            ) : null}
           </CardHeader>
           <CardContent>
             <FieldGroup>

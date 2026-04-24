@@ -18,6 +18,7 @@ import { basename, join } from "node:path"
 import type { Response as ExpressResponse } from "express"
 
 import { AiService } from "../ai/ai.service.js"
+import { isAdminEmail } from "../auth/auth-session.js"
 import { AuthGuard } from "../auth/auth.guard.js"
 import { CurrentUser } from "../auth/current-user.decorator.js"
 import type { SessionUser } from "../auth/auth.types.js"
@@ -46,6 +47,7 @@ export class UserController {
         id: user.id,
         name: user.name,
         email: user.email,
+        isAdmin: isAdminEmail(user.email),
       },
       profile: user.profile,
       metrics: {

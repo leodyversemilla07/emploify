@@ -13,6 +13,7 @@ import { Separator } from "@workspace/ui/components/separator"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 
+import { SessionErrorState } from "@/components/auth/session-error-state"
 import { SidebarLayout } from "@/components/sidebar-layout"
 import { useSession } from "@/lib/auth"
 
@@ -75,7 +76,7 @@ type TopMatch = {
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"
 
 export function DashboardClient() {
-  const { data: session, error, isPending } = useSession()
+  const { data: session, error, isPending, refresh } = useSession()
   const [profile, setProfile] = useState<ProfileResponse | null>(null)
   const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null)
   const [recommendations, setRecommendations] =
@@ -121,19 +122,7 @@ export function DashboardClient() {
 
 
   if (error) {
-    return (
-      <SidebarLayout current="dashboard">
-        <section className="mx-auto flex w-full max-w-3xl flex-col gap-4">
-          <h1 className="text-2xl font-medium tracking-tight">
-            We couldn’t verify your session.
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Please retry in a moment. If the problem persists, check the API auth
-            service.
-          </p>
-        </section>
-      </SidebarLayout>
-    )
+    return <SessionErrorState current="dashboard" onRetry={refresh} />
   }
 
   if (isPending || !session?.user) {

@@ -1,3 +1,4 @@
+import { ServiceUnavailableException } from "@nestjs/common"
 import OpenAI from "openai"
 import type { ChatMessage, ChatOptions } from "../llm.interface.js"
 import { LlmProvider } from "../llm.interface.js"
@@ -47,7 +48,7 @@ export class OpenAiCompatProvider extends LlmProvider {
 
   async chat(messages: ChatMessage[], options?: ChatOptions): Promise<string> {
     if (!this.client) {
-      throw new Error("OpenAI-compat client not configured")
+      throw new ServiceUnavailableException("OpenAI-compat client not configured")
     }
 
     const response = await this.client.chat.completions.create({

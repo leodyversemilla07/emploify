@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common"
+import { Injectable, NotFoundException } from "@nestjs/common"
 import type { ExperienceLevel, Prisma } from "@prisma/client"
 
 // biome-ignore lint/style/useImportType: NestJS dependency injection requires a runtime class reference.
@@ -389,7 +389,7 @@ export class JobService {
     })
 
     if (!user) {
-      throw new Error("User not found")
+      throw new NotFoundException("User not found")
     }
 
     const savedJob = await this.prisma.savedJob.upsert({

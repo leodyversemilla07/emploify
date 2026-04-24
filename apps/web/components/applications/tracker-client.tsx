@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 
+import { SessionErrorState } from "@/components/auth/session-error-state"
 import { SidebarLayout } from "@/components/sidebar-layout"
 import { useSession } from "@/lib/auth"
 
@@ -70,7 +71,7 @@ const statusLabel: Record<ApplicationStatus, string> = {
 
 export function TrackerClient() {
   const router = useRouter()
-  const { data: session, error, isPending } = useSession()
+  const { data: session, error, isPending, refresh } = useSession()
   const [applications, setApplications] = useState<ApplicationItem[]>([])
   const [draftNotes, setDraftNotes] = useState<Record<string, string>>({})
   const [savingNotes, setSavingNotes] = useState<Record<string, boolean>>({})
@@ -219,19 +220,7 @@ export function TrackerClient() {
   }
 
   if (error) {
-    return (
-      <SidebarLayout current="tracker">
-        <section className="mx-auto flex w-full max-w-3xl flex-col gap-4">
-          <h1 className="text-2xl font-medium tracking-tight">
-            We couldn’t verify your session.
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Please retry in a moment. If the problem persists, check the API auth
-            service.
-          </p>
-        </section>
-      </SidebarLayout>
-    )
+    return <SessionErrorState current="tracker" onRetry={refresh} />
   }
 
   if (isPending || !session?.user) {

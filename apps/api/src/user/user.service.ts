@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common"
+import { Injectable, NotFoundException } from "@nestjs/common"
 import type { ExperienceLevel } from "@prisma/client"
 
 import type { ResumeParseResult } from "../ai/ai.service.js"
@@ -34,7 +34,7 @@ export class UserService {
     })
 
     if (!user) {
-      throw new Error("User not found")
+      throw new NotFoundException("User not found")
     }
 
     if (input.name && input.name !== user.name) {
