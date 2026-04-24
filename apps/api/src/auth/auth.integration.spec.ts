@@ -311,6 +311,8 @@ describe("auth integration", () => {
         resumeUrl: `http://localhost:4000/users/profile/resume/${previousFileName}`,
       },
     })
+    const mockedExtractText = jest.mocked(extractTextFromBuffer)
+    mockedExtractText.mockRejectedValueOnce(new Error("Extraction failed"))
     userService.updateResumeProfile.mockResolvedValueOnce({ id: "profile-2" })
 
     await request(app.getHttpServer())

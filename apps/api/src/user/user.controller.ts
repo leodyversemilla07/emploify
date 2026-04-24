@@ -114,9 +114,12 @@ export class UserController {
       file.mimetype ===
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     ) {
-      const extractedText = await extractTextFromBuffer(file.buffer, file.mimetype)
-      if (extractedText) {
+      try {
+        const extractedText = await extractTextFromBuffer(file.buffer, file.mimetype)
         parsed = await this.aiService.parseResumeText(extractedText)
+      } catch (error) {
+        console.error("Failed to extract text from resume:", error)
+        // Upload continues with parsed = null, file is still stored
       }
     }
 
